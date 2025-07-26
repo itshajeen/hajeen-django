@@ -121,14 +121,13 @@ SIMPLE_JWT = {
 # }
 
 DATABASES = {
-    "default": {
-        "USER": config("MYSQL_USER"),
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": config("MYSQL_DATABASE"),
-        "PASSWORD": config("MYSQL_PASSWORD"),
-        "HOST": config("MYSQL_HOSTNAME"),
-        "PORT": config("MYSQL_PORT"),
-        "OPTIONS": {"charset": "utf8mb4"},
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'hajeen',
+        'USER': 'hajeen',
+        'PASSWORD': 'hajeen1234',
+        'HOST': 'localhost',
+        'PORT': '3306',
     }
 }
 
