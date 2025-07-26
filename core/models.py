@@ -53,12 +53,12 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
     @property
-    def is_client(self):
-        return self.role == 'client'
+    def is_patient(self):
+        return self.role == 'patient'
 
     @property
-    def is_craftsman(self):
-        return self.role == 'craftsman'
+    def is_follower(self):
+        return self.role == 'follower'
 
     class Meta:
         verbose_name_plural = 'Users'
