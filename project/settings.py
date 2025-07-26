@@ -5,6 +5,7 @@ from django.utils.translation import gettext_lazy as _
 from pathlib import Path
 from datetime import timedelta
 import os 
+from decouple import config 
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -112,10 +113,22 @@ SIMPLE_JWT = {
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "USER": config("MYSQL_USER"),
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": config("MYSQL_DATABASE"),
+        "PASSWORD": config("MYSQL_PASSWORD"),
+        "HOST": config("MYSQL_HOSTNAME"),
+        "PORT": config("MYSQL_PORT"),
+        "OPTIONS": {"charset": "utf8mb4"},
     }
 }
 

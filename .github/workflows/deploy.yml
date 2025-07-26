@@ -1,0 +1,90 @@
+on:
+  push:
+    branches:
+      - main  
+
+env:
+  DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass
+
+      - name: Ensure SSH Config Directory Exists
+        run: mkdir -p ~/.ssh
+
+      - name: Disable SSH Host Key Checking
+        run: echo "StrictHostKeyChecking no" >> ~/.ssh/config
+
+      - name: Transfer Built Files to Droplet
+        env:
+          SSHPASS: ${{ secrets.DROPLET_PASSWORD }}
+        run: |
+          cd $GITHUB_WORKSPACE
+          REPO_NAME=$(basename -s .git https://github.com/${{ github.repository }})
+          sshpass -e rsync -avz --delete ./ ${{ secrets.DROPLET_USERNAME }}@${{ secrets.DROPLET_IP }}:/root/$REPO_NAME         
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: SSH Generate .env from GitHub Secrets
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.DROPLET_IP }}
+          username: ${{ secrets.DROPLET_USERNAME }}
+          password: ${{ secrets.DROPLET_PASSWORD }}
+          script: |
+            sudo apt-get update && sudo apt-get install -y jq
+            echo '${{ toJSON(secrets) }}' | jq -r 'keys[] as $k | "\($k)=\(.[$k])"' > /root/.env
+            echo '${{ toJSON(vars) }}' | jq -r 'keys[] as $k | "\($k)=\(.[$k])"' >> /root/.env
+
+      - name: SSH Install Docker and Docker Compose
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.DROPLET_IP }}
+          username: ${{ secrets.DROPLET_USERNAME }}
+          password: ${{ secrets.DROPLET_PASSWORD }}
+          script: |
+            sudo apt-get update
+            if ! [ -x "$(command -v docker)" ]; then
+              echo "Docker is not installed. Installing Docker..."
+              sudo snap install docker 
+            else
+              echo "Docker is already installed."
+            fi
+
+      - name: Deploy via SSH and Run Docker Compose
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.DROPLET_IP }}
+          username: ${{ secrets.DROPLET_USERNAME }}
+          password: ${{ secrets.DROPLET_PASSWORD }}
+          script: |
+            export $(grep -v '^#' /root/.env | xargs)
+            REPO_NAME=$(basename -s .git https://github.com/${{ github.repository }})
+            echo "Navigating to /root/$REPO_NAME"
+            cd /root/$REPO_NAME || { echo "Directory /root/$REPO_NAME not found"; exit 1; }
+
+            # Replace DOMAIN_NAME in nginx config
+            sed -i "s/{{DOMAIN_NAME}}/${{ vars.DOMAIN_NAME }}/g" nginx/conf/default.conf
+            sed -i "s/{{DOMAIN_NAME}}/${{ vars.DOMAIN_NAME }}/g" nginx/conf/ssl.conf.template
+
+            DOMAIN_NAME=${{ vars.DOMAIN_NAME }} docker compose down --rmi all || true
+            DOMAIN_NAME=${{ vars.DOMAIN_NAME }} docker compose up -d --build           
+
+            echo "Reloading NGINX..."
+            docker restart nginx
+
+            cp nginx/conf/ssl.conf.template nginx/conf/ssl.conf
+
+            echo "Cleaning up old and unused Docker images"
+            # docker image prune -a -f
+
+            exit 0

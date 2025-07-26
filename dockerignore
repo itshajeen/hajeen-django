@@ -1,0 +1,28 @@
+# Ignore the Python virtual environment
+.venv
+
+# Ignore git directory and history
+.git
+.gitignore
+
+# Ignore logs and temporary files
+logs
+*.log
+
+# Ignore IDE/editor configurations
+.vscode
+
+# Ignore local development files
+env
+*.env
+
+# Ignore database files (if not needed for the build)
+database_file.sql
+
+# Ignore media and uploaded files (unless you need them in the build)
+media
+
+# Ignore any other unnecessary files or directories
+node_modules
+
+ 

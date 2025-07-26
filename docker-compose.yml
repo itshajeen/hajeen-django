@@ -1,0 +1,67 @@
+version: '3.8'
+services:
+  django:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: django_app:latest
+    container_name: django_app
+    volumes:
+      - /root/logs:/app/logs # Mount a directory for logs
+      - .:/app # Mount the project folder to the container
+      - /root/.env:/app/.env:ro # Mount .env file into the container with read-only permission
+    restart: always
+    environment:
+      - ENV_FILE=/app/.env
+    ports:
+      - "8000:8000"
+    network_mode: "host" 
+
+  nginx:
+    image: nginx
+    container_name: nginx
+    volumes:
+      - ./nginx/conf/:/etc/nginx/conf.d/:rw
+      - /root/certbot/www:/var/www/certbot/:ro
+      - /root/certbot/conf/:/etc/nginx/ssl/:ro
+      - ./scripts:/scripts
+      - /root/logs/nginx:/var/log/nginx # Mount for Nginx logs
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME}
+    restart: always
+    command: /bin/bash -c "chmod +x /scripts/check_and_enable_ssl.sh && /scripts/check_and_enable_ssl.sh 2>&1 | tee /scripts/ssl.log && nginx -g 'daemon off;'"
+    network_mode: "host" # Use host network mode
+    depends_on:
+      - django
+      - certbot
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    ports:
+      - 3306:3306
+    environment:
+      - MYSQL_DATABASE=hajeen
+      - MYSQL_ROOT_PASSWORD=hajeen123456@#$
+    volumes:
+      - /root/mysql/my.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf:ro
+      - /root/mysql/data:/var/lib/mysql
+      - /root/mysql/logs:/var/log/mysql  # Persist MySQL data on host
+    restart: always
+ 
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME}
+    volumes:
+      - /root/certbot/www/:/var/www/certbot/:rw
+      - /root/certbot/conf/:/etc/letsencrypt/:rw
+      - ./scripts:/scripts
+      - /root/logs/certbot:/var/log/letsencrypt # Mount for Certbot logs
+    working_dir: /scripts # Set the working directory to where the script is located
+    entrypoint: "/bin/sh -c 'chmod +x check_ssl_exist.sh && sh check_ssl_exist.sh 2>&1 | tee ssl_exist.log'"
+     

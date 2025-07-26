@@ -1,0 +1,33 @@
+name: Manual Docker Cleanup
+on:
+  workflow_dispatch:
+jobs:
+  docker-cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up SSH action
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.DROPLET_IP }}
+          username: ${{ secrets.DROPLET_USERNAME }}
+          password: ${{ secrets.DROPLET_PASSWORD }}
+          script: |
+            echo "Stopping all containers..."
+            docker stop $(docker ps -aq) || true
+
+            echo "Removing all containers..."
+            docker rm $(docker ps -aq) || true
+
+            echo "Removing all images..."
+            docker rmi -f $(docker images -q) || true
+
+            echo "Removing all volumes..."
+            docker volume rm $(docker volume ls -q) || true
+
+            echo "Removing all custom networks..."
+            docker network rm $(docker network ls -q) || true
+
+            echo "Running system prune to clean up remaining data..."
+            docker system prune -a -f --volumes
+
+            echo "Docker cleanup completed successfully!"
