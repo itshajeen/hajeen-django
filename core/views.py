@@ -7,9 +7,9 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.decorators import action
 
 from core.pagination import DefaultPagination
-from core.permissions import IsAdminOrReadOnly
-from .models import Follower, User 
-from .serializers import FollowerSerializer, PhoneLoginSerializer, PhonePasswordLoginSerializer, UserProfileSerializer, UserProfileUpdateSerializer
+from core.permissions import IsAdminOrReadOnly, IsGuardianOwnDependent
+from .models import Dependent, Guardian, User 
+from .serializers import DependentSerializer, GuardianSerializer, PhoneLoginSerializer, PhonePasswordLoginSerializer, UserProfileSerializer, UserProfileUpdateSerializer
 
 
 # Phone Login API View
@@ -68,8 +68,6 @@ class VerifyOTPAPIView(APIView):
                 return Response({
                     'detail': _('Login successful.'),
                     'role': user.role,
-                    'is_craftsman': user.is_craftsman,
-                    'is_client': user.is_client,
                     'access_token': access_token,
                     'refresh_token': refresh_token
                 })
@@ -106,31 +104,45 @@ class DeleteAccountAPIView(APIView):
     
 
 
-# Craftsman Viewset 
-class FollowerViewSet(viewsets.ModelViewSet):
-    queryset = Follower.objects.select_related('user').all()
-    serializer_class = FollowerSerializer
+# Guardian Viewset 
+class GuardianViewSet(viewsets.ModelViewSet):
+    queryset = Guardian.objects.select_related('user').all()
+    serializer_class = GuardianSerializer 
     permission_classes = [IsAdminUser]
+    pagination_class = DefaultPagination 
 
     def get_queryset(self):
         return super().get_queryset().order_by('-created_at')
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], url_path='toggle-block')
     def toggle_block(self, request, pk=None):
-        craftsman = self.get_object()
-        user = craftsman.user
+        guardian = self.get_object()
+        user = guardian.user
         user.is_block = not user.is_block
         user.save()
         return Response({'status': 'success', 'is_block': user.is_block}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], url_path='toggle-activate')
     def toggle_activate(self, request, pk=None):
-        craftsman = self.get_object()
-        user = craftsman.user
+        guardian = self.get_object()
+        user = guardian.user
         user.is_active = not user.is_active
         user.save()
         return Response({'status': 'success', 'is_active': user.is_active}, status=status.HTTP_200_OK)
 
+    def perform_destroy(self, instance):
+        # Delete the Guardian and associated User 
+        user = instance.user
+        instance.delete()
+        user.delete()
 
 
+# Dependent Viewset 
+class DependentViewSet(viewsets.ModelViewSet):
+    queryset = Dependent.objects.select_related('guardian').all()
+    serializer_class = DependentSerializer
+    permission_classes = [IsGuardianOwnDependent]
+    pagination_class = DefaultPagination
 
+    def get_queryset(self):
+        return super().get_queryset().order_by('-date_birth')

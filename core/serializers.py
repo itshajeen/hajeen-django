@@ -1,7 +1,8 @@
 from django.contrib.auth import authenticate
 from django.utils.translation import gettext_lazy as _
+from django.utils import timezone 
 from rest_framework import serializers
-from .models import  Follower, User, Patient
+from .models import  Guardian, Dependent, User 
 import random
 
 
@@ -14,11 +15,11 @@ class PhoneLoginSerializer(serializers.Serializer):
 
         user, created = User.objects.get_or_create(
             phone_number=phone_number,
-            defaults={'role': 'patient', 'is_active': True, 'is_block': False}
+            defaults={'role': 'guardian', 'is_active': True, 'is_block': False}
         )
     
-        if created and user.role == 'patient':
-            Patient.objects.create(user=user)
+        if created and user.role == 'guardian':
+            Guardian.objects.create(user=user)
 
         # Check if user is blocked 
         if user.is_block :
@@ -70,10 +71,18 @@ class UserSerializer(serializers.ModelSerializer):
 
 # User Profile Serializer 
 class UserProfileSerializer(serializers.ModelSerializer):
+    dependents_count = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = User
-        fields = ['name', 'phone_number', 'role', 'profile_picture'] 
+        fields = ['name', 'phone_number', 'role', 'profile_picture', 'dependents_count'] 
         read_only_fields = ['role']  # Read-only fields for the get endpoint
+
+    # Get Dependents Count 
+    def get_dependents_count(self, obj):
+        if obj.role == 'guardian' and hasattr(obj, 'guardian'):
+            return obj.guardian.dependents.count()
+        return 0
 
     # Get Profile Picture 
     def get_profile_picture(self, obj):
@@ -82,28 +91,24 @@ class UserProfileSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(obj.profile_picture.url) if request else obj.profile_picture.url
         return None
 
-
 # User Profile Update Serializer 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['name', 'phone_number', 'role', 'profile_picture']  # Define fields to update
-        extra_kwargs = {
-            'role': {'read_only': True}           # Prevent updating role
-        }
+        read_only_fields = ['role', 'phone_number']
 
 
-
-# Follower Serializer for updating Follower and User data 
-class FollowerSerializer(serializers.ModelSerializer):
+# Guardian Serializer 
+class GuardianSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source='user.name', required=False)
     phone_number = serializers.CharField(source='user.phone_number', required=False)
     profile_picture = serializers.ImageField(source='user.profile_picture', required=False)
-    is_active = serializers.BooleanField(required=False)
-    is_block = serializers.BooleanField(required=False)
+    is_active = serializers.BooleanField(source='user.is_active', required=False)
+    is_block = serializers.BooleanField(source='user.is_block', required=False)
 
     class Meta:
-        model = Follower
+        model = Guardian
         fields = [
             'id',
             'name',
@@ -111,50 +116,92 @@ class FollowerSerializer(serializers.ModelSerializer):
             'profile_picture',
             'is_active',
             'is_block',
-            'description',
-            'location',
             'created_at',
         ]
 
+    def create(self, validated_data):
+        # Extract user data from validated_data 
+        user_data = validated_data.pop('user', {})
+
+        # Check if phone number is provided and unique 
+        phone_number = user_data.get('phone_number')
+        if User.objects.filter(phone_number=phone_number).exists():
+            raise serializers.ValidationError({'detail': _('Phone number already exists.')})
+
+        # Create the User instance 
+        user = User.objects.create(
+            name=user_data.get('name', ''),
+            phone_number=phone_number,
+            profile_picture=user_data.get('profile_picture', None),
+            is_active=user_data.get('is_active', True),
+            is_block=user_data.get('is_block', False),
+            role='guardian',
+        )
+
+        # Create the Guardian instance 
+        guardian = Guardian.objects.create(user=user, **validated_data)
+        return guardian
+
     def update(self, instance, validated_data):
         user = instance.user
+        user_data = validated_data.pop('user', {})
 
-        # Check if the phone number is provided and validate it 
-        new_phone = validated_data.get('phone_number')
+        # Check if phone number is provided and unique 
+        new_phone = user_data.get('phone_number')
         if new_phone and new_phone != user.phone_number:
-            if user.__class__.objects.filter(phone_number=new_phone).exclude(pk=user.pk).exists():
+            if User.objects.filter(phone_number=new_phone).exclude(pk=user.pk).exists():
                 raise serializers.ValidationError({'detail': _('Phone number already exists.')})
             user.phone_number = new_phone
 
-        user.name = validated_data.get('name', user.name)
-        user.is_active = validated_data.get('is_active', user.is_active)
-        user.is_block = validated_data.get('is_block', user.is_block)
+        # Update user fields 
+        user.name = user_data.get('name', user.name)
+        user.is_active = user_data.get('is_active', user.is_active)
+        user.is_block = user_data.get('is_block', user.is_block)
 
-        if 'profile_picture' in validated_data:
-            user.profile_picture = validated_data['profile_picture']
+        if 'profile_picture' in user_data:
+            user.profile_picture = user_data['profile_picture']
 
         user.save()
-
-        # Update Follower fields 
         instance.save()
 
         return instance
 
+
+# Dependent Serializer 
+class DependentSerializer(serializers.ModelSerializer):
+    guardian = GuardianSerializer(read_only=True)
+
+    class Meta:
+        model = Dependent
+        fields = ['id', 'name', 'disability_type', 'control_method', 'date_birth', 'guardian']
+        
     def create(self, validated_data):
-        # Extract user-related fields
-        user_data = {
-            'name': validated_data.pop('name', ''),
-            'phone_number': validated_data.pop('phone_number', ''),
-            'profile_picture': validated_data.pop('profile_picture', None),
-            'is_active': validated_data.pop('is_active', True),
-            'is_block': validated_data.pop('is_block', False),
-            'role': 'follower'
-        }
+        guardian = self.context['request'].user.guardian
+        if not guardian:
+            raise serializers.ValidationError({'detail': _('Guardian profile not found.')}) 
+        return Dependent.objects.create(guardian=guardian, **validated_data)
 
-        # Check if phone number already exists
-        if User.objects.filter(phone_number=user_data['phone_number']).exists():
-            raise serializers.ValidationError({'detail': _('Phone number already exists.')})
+    def validate(self, attrs):
+        # Validate control method and disability type 
+        if attrs['control_method'] not in dict(Dependent.CONTROL_METHOD_CHOICES).keys():
+            raise serializers.ValidationError({'control_method': _('Invalid control method.')})
+        
+        if attrs['disability_type'] not in dict(Dependent.DISABILITY_TYPE_CHOICES).keys():
+            raise serializers.ValidationError({'disability_type': _('Invalid disability type.')})
+        
+        # Validate date of birth 
+        if 'date_birth' in attrs and attrs['date_birth'] is not None:
+            today = timezone.now().date()
+            if attrs['date_birth'] > today:
+                raise serializers.ValidationError({'date_birth': _('Date of birth must be in the past.')})
+            age = today.year - attrs['date_birth'].year - (
+                (today.month, today.day) < (attrs['date_birth'].month, attrs['date_birth'].day)
+            )
+            if age > 200:
+                raise serializers.ValidationError({'date_birth': _('Age cannot be more than 200 years.')})
+        return attrs
 
-        user = User.objects.create(**user_data)
-        follower = Follower.objects.create(user=user, **validated_data)
-        return follower 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['guardian'] = GuardianSerializer(instance.guardian, context=self.context).data
+        return representation

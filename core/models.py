@@ -33,8 +33,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     # User Roles 
     ROLES_CHOICES = (
         ('admin', _('Admin')),
-        ('follower', _('Folower')),
-        ('patient', _('Patient')),
+        ('guardian', _('Guardian')),
+        ('dependent', _('Dependent')),
     )
     name = models.CharField(max_length=255, null=True, blank=True)
     phone_number = models.CharField(validators=[phone_regex], max_length=17, unique=True)  # max_length 17 for country code and number
@@ -51,11 +51,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'phone_number'
     REQUIRED_FIELDS = []
 
-
-    @property
-    def is_patient(self):
-        return self.role == 'patient'
-
     @property
     def is_follower(self):
         return self.role == 'follower'
@@ -67,8 +62,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.phone_number 
 
 
-# Craftsman model
-class Follower(models.Model):
+# Guardian model
+class Guardian(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField(default=timezone.now)
 
@@ -76,12 +71,32 @@ class Follower(models.Model):
         return self.user.phone_number
     
 
-# Client model
-class Patient(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+# Dependent Model 
+class Dependent(models.Model):
+    # Control Method Choices
+    CONTROL_METHOD_CHOICES = (
+        ('eye', _('Eye Only')),
+        ('eye_lip', _('Eye and Lips')),
+    )
+
+    # Disability Type Choices 
+    DISABILITY_TYPE_CHOICES = (
+        ('motor', _('Motor')),
+        ('verbal', _('Verbal')),
+        ('cognitive', _('Cognitive')),
+        ('visual', _('Visual')),
+        ('hearing', _('Hearing')),
+        ('other', _('Other')),
+    )
+
+    # Dependent model fields 
+    name = models.CharField(max_length=255) 
+    guardian = models.ForeignKey(Guardian, related_name='dependents', on_delete=models.CASCADE) 
+    date_birth = models.DateField(null=True, blank=True)
+    control_method = models.CharField(max_length=20, choices=CONTROL_METHOD_CHOICES) # No Default 
+    disability_type = models.CharField(max_length=20, choices=DISABILITY_TYPE_CHOICES, default='other') 
     created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return self.user.phone_number
-
 

@@ -1,11 +1,13 @@
 from django.urls import include, path 
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework.routers import DefaultRouter
-from .views import FollowerViewSet, PhoneLoginAPIView, PhonePasswordLoginAPIView, VerifyOTPAPIView, UserProfileAPIView, DeleteAccountAPIView
+from .views import DependentViewSet, GuardianViewSet, PhoneLoginAPIView, PhonePasswordLoginAPIView, VerifyOTPAPIView, UserProfileAPIView, DeleteAccountAPIView
 
 # Create a router and register our viewsets with it 
 router = DefaultRouter()
-router.register('follower', FollowerViewSet, basename='follower')
+router.register('guardians', GuardianViewSet, basename='guardians')
+router.register('dependents', DependentViewSet, basename='dependents') 
+
 
 # URL patterns for the core app
 urlpatterns = [
