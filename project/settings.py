@@ -179,3 +179,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'core.User'  # Custom user model
 
+
+# TAQNYAT API Key 
+TAQNYAT_API_KEY = "1cb7468728a9d8666e3e0789cfe94cb6"

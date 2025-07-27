@@ -3,6 +3,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils import timezone 
 from rest_framework import serializers
 from .models import  Guardian, Dependent, User 
+from .utils import send_sms
 import random
 
 
@@ -30,9 +31,15 @@ class PhoneLoginSerializer(serializers.Serializer):
         user.otp = otp
         user.save()
 
-        # TODO: Send OTP via SMS (Twilio, etc.)
+        # For development/testing purposes, print the OTP to console 
         print(f"OTP for {user.phone_number} is {otp}")
 
+        # send OTP via SMS TAQNYAT API 
+        send_sms(
+            recipients=[user.phone_number],
+            body=f"رمز التحقق الخاص بك هو: {otp}",
+            sender="Hajeen"
+        )
         attrs['user'] = user
         return attrs
     
