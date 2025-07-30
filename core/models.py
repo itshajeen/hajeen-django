@@ -86,6 +86,16 @@ class Guardian(models.Model):
         return self.user.phone_number
     
 
+# Disablity model
+class DisabilityType(models.Model):
+    name_ar = models.CharField(max_length=255)
+    name_en = models.CharField(max_length=255)
+    status = models.CharField(max_length=20, choices=[('active', _('Active')), ('inactive', _('Inactive'))], default='active')
+    created_at = models.DateTimeField(auto_now_add=True) 
+    def __str__(self):
+        return self.name_en or self.name_ar 
+    
+
 # Dependent Model 
 class Dependent(models.Model):
     # Control Method Choices
@@ -98,16 +108,6 @@ class Dependent(models.Model):
     DEGREE_TYPE_CHOICES = (
         ('higher', _('Higher Education')),
         ('general', _('General Education')),
-        ('other', _('Other')),
-    )
-
-    # Disability Type Choices 
-    DISABILITY_TYPE_CHOICES = (
-        ('motor', _('Motor')),
-        ('verbal', _('Verbal')),
-        ('cognitive', _('Cognitive')),
-        ('visual', _('Visual')),
-        ('hearing', _('Hearing')),
         ('other', _('Other')),
     )
 
@@ -130,7 +130,7 @@ class Dependent(models.Model):
     guardian = models.ForeignKey(Guardian, related_name='dependents', on_delete=models.CASCADE) 
     date_birth = models.DateField(null=True, blank=True)
     control_method = models.CharField(max_length=20, choices=CONTROL_METHOD_CHOICES) # No Default 
-    disability_type = models.CharField(max_length=20, choices=DISABILITY_TYPE_CHOICES, default='other') 
+    disability_type = models.ForeignKey(DisabilityType, related_name='dependents', on_delete=models.CASCADE)
     gender = models.CharField(max_length=10, choices=[('male', _('Male')), ('female', _('Female'))])
     marital_status = models.CharField(max_length=20, choices=[('single', _('Single')), ('married', _('Married'))], default='single')
     degree_type = models.CharField(

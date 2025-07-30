@@ -11,8 +11,8 @@ from rest_framework.decorators import action
 from core.pagination import DefaultPagination
 from core.permissions import IsAdminOrReadOnly, IsGuardianOwnDependent
 from core.utils import send_sms
-from .models import Dependent, Guardian, User 
-from .serializers import DependentSerializer, GuardianSerializer, PhoneLoginSerializer, PhonePasswordLoginSerializer, SetGuardianPinCodeSerializer, UserProfileSerializer, UserProfileUpdateSerializer
+from .models import Dependent, DisabilityType, Guardian, User 
+from .serializers import DependentSerializer, DisabilityTypeSerializer, GuardianSerializer, PhoneLoginSerializer, PhonePasswordLoginSerializer, SetGuardianPinCodeSerializer, UserProfileSerializer, UserProfileUpdateSerializer
 
 
 # Phone Login API View
@@ -210,6 +210,21 @@ class GuardianViewSet(viewsets.ModelViewSet):
         user = instance.user
         instance.delete()
         user.delete()
+
+
+# Disability Type Viewset
+class DisabilityTypeViewSet(viewsets.ModelViewSet):
+    queryset = DisabilityType.objects.all()
+    serializer_class = DisabilityTypeSerializer
+    permission_classes = [IsAdminOrReadOnly]
+    pagination_class = DefaultPagination
+
+    def get_queryset(self):
+        queryset = super().get_queryset().order_by('name_en')
+        user = self.request.user
+        if not user.is_staff:
+            queryset = queryset.filter(status='active') # check if user is not staff, then filter active disability types
+        return queryset
 
 
 # Dependent Viewset 

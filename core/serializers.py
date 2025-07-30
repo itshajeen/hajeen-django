@@ -2,7 +2,7 @@ from django.contrib.auth import authenticate
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone 
 from rest_framework import serializers
-from .models import  Guardian, Dependent, User 
+from .models import  DisabilityType, Guardian, Dependent, User 
 from .utils import send_sms
 import random
 
@@ -220,6 +220,16 @@ class SimpleGuardianSerializer(serializers.ModelSerializer):
         representation['user'] = UserSerializer(instance.user, context=self.context).data
         return representation
     
+# Disabled Type Serializer 
+class DisabilityTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DisabilityType 
+        fields = ['id', 'name_en', 'name_ar', 'status', 'created_at']
+        read_only_fields = ['created_at']
+        extra_kwargs = {
+            'status': {'required': False},
+        } 
+
 
 # Dependent Serializer 
 class DependentSerializer(serializers.ModelSerializer):
@@ -258,4 +268,5 @@ class DependentSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation['guardian'] = SimpleGuardianSerializer(instance.guardian, context=self.context).data
+        representation['disability_type'] = DisabilityTypeSerializer(instance.disability_type, context=self.context).data
         return representation
