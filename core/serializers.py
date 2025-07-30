@@ -220,15 +220,31 @@ class SimpleGuardianSerializer(serializers.ModelSerializer):
         representation['user'] = UserSerializer(instance.user, context=self.context).data
         return representation
     
-# Disabled Type Serializer 
+
+# Disability Type Serializer 
 class DisabilityTypeSerializer(serializers.ModelSerializer):
+    dependents_count = serializers.SerializerMethodField()
+
     class Meta:
         model = DisabilityType 
-        fields = ['id', 'name_en', 'name_ar', 'status', 'created_at']
+        fields = ['id', 'name_en', 'name_ar', 'status', 'created_at', 'dependents_count']
         read_only_fields = ['created_at']
         extra_kwargs = {
             'status': {'required': False},
-        } 
+        }
+
+    def get_dependents_count(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_staff:
+            return obj.dependents.count()
+        return None  # Only return count if user is staff 
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get('request')
+        if not request or not request.user.is_staff:
+            representation.pop('dependents_count', None)
+        return representation
 
 
 # Dependent Serializer 
