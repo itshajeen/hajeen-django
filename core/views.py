@@ -114,7 +114,7 @@ class SetGuardianPinCodeView(APIView):
         serializer = SetGuardianPinCodeSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
-            return Response({'detail': _('PIN code set successfully.')}, status=201)
+            return Response({'message': _('PIN code set successfully.')}, status=201)
         return Response(serializer.errors, status=400)
 
 
@@ -143,7 +143,7 @@ class RequestGuardianPinResetView(APIView):
             body=f"رمز التحقق لتغيير الكود السري هو: {otp}",
             sender="Hajeen"
         )
-        return Response({'detail': _('Verification code has been sent to your phone number successfully.')}, status=200)
+        return Response({'detail': _('Verification code has been sent to your phone number successfully.'), 'otp': guardian.pin_reset_otp }, status=200)
 
 
 # Reset Guardian PIN Code API View
@@ -163,7 +163,12 @@ class ResetGuardianPinCodeView(APIView):
         otp = request.data.get('otp')
         new_pin_code = request.data.get('new_pin_code')
 
-        if guardian.pin_reset_otp != otp or not guardian.check_code(new_pin_code):
+        # Check OTP
+        if guardian.pin_reset_otp != otp:
+            return Response({'detail': _('Invalid OTP or PIN code.')}, status=400)
+
+        # Validate new_pin_code (example: must be 4 digits)
+        if not new_pin_code or not new_pin_code.isdigit() or len(new_pin_code) != 4:
             return Response({'detail': _('Invalid OTP or PIN code.')}, status=400)
 
         guardian.set_code(new_pin_code)

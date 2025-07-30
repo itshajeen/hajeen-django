@@ -131,6 +131,7 @@ class Dependent(models.Model):
     date_birth = models.DateField(null=True, blank=True)
     control_method = models.CharField(max_length=20, choices=CONTROL_METHOD_CHOICES) # No Default 
     disability_type = models.CharField(max_length=20, choices=DISABILITY_TYPE_CHOICES, default='other') 
+    gender = models.CharField(max_length=10, choices=[('male', _('Male')), ('female', _('Female'))])
     marital_status = models.CharField(max_length=20, choices=[('single', _('Single')), ('married', _('Married'))], default='single')
     degree_type = models.CharField(
         max_length=100,

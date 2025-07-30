@@ -209,14 +209,25 @@ class GuardianSerializer(serializers.ModelSerializer):
 
         return instance
 
+# Simple Guardian Serializer for listing
+class SimpleGuardianSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Guardian
+        fields = ['id', 'user']  # Include only necessary fields
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['user'] = UserSerializer(instance.user, context=self.context).data
+        return representation
+    
 
 # Dependent Serializer 
 class DependentSerializer(serializers.ModelSerializer):
-    guardian = GuardianSerializer(read_only=True)
+    guardian = SimpleGuardianSerializer(read_only=True)
 
     class Meta:
         model = Dependent
-        fields = ['id', 'name', 'disability_type', 'control_method', 'date_birth', 'guardian', 'created_at', 'degree_type', 'marital_status', 'interest_field']
+        fields = ['id', 'name', 'disability_type', 'control_method', 'gender', 'date_birth', 'guardian', 'created_at', 'degree_type', 'marital_status', 'interest_field']
         
     def create(self, validated_data):
         guardian = self.context['request'].user.guardian
@@ -246,5 +257,5 @@ class DependentSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        representation['guardian'] = GuardianSerializer(instance.guardian, context=self.context).data
+        representation['guardian'] = SimpleGuardianSerializer(instance.guardian, context=self.context).data
         return representation
