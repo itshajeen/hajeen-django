@@ -1,4 +1,6 @@
+import random
 from django.utils.translation import gettext_lazy as _ 
+from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import viewsets, status
@@ -8,8 +10,9 @@ from rest_framework.decorators import action
 
 from core.pagination import DefaultPagination
 from core.permissions import IsAdminOrReadOnly, IsGuardianOwnDependent
+from core.utils import send_sms
 from .models import Dependent, Guardian, User 
-from .serializers import DependentSerializer, GuardianSerializer, PhoneLoginSerializer, PhonePasswordLoginSerializer, UserProfileSerializer, UserProfileUpdateSerializer
+from .serializers import DependentSerializer, GuardianSerializer, PhoneLoginSerializer, PhonePasswordLoginSerializer, SetGuardianPinCodeSerializer, UserProfileSerializer, UserProfileUpdateSerializer
 
 
 # Phone Login API View
@@ -101,8 +104,75 @@ class DeleteAccountAPIView(APIView):
         user = request.user
         user.delete()
         return Response({"message": _("Account deleted successfully.")}, status=status.HTTP_204_NO_CONTENT)
-    
 
+
+# Guardian Set Pin Code API View 
+class SetGuardianPinCodeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = SetGuardianPinCodeSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'detail': _('PIN code set successfully.')}, status=201)
+        return Response(serializer.errors, status=400)
+
+
+# Request Guardian PIN Reset API View 
+class RequestGuardianPinResetView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        if user.role != 'guardian':
+            return Response({'detail': _('Only guardians can request pin reset.')}, status=403)
+
+        try:
+            guardian = Guardian.objects.get(user=user)
+        except Guardian.DoesNotExist:
+            return Response({'detail': 'Guardian not found.'}, status=404)
+
+        otp = str(random.randint(100000, 999999))
+        guardian.pin_reset_otp = otp
+        guardian.otp_created_at = timezone.now()
+        guardian.save()
+
+        # Send SMS
+        send_sms(
+            recipients=[user.phone_number],
+            body=f"رمز التحقق لتغيير الكود السري هو: {otp}",
+            sender="Hajeen"
+        )
+        return Response({'detail': _('Verification code has been sent to your phone number successfully.')}, status=200)
+
+
+# Reset Guardian PIN Code API View
+class ResetGuardianPinCodeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        if user.role != 'guardian':
+            return Response({'detail': _('Only guardians can reset pin code.')}, status=403)
+
+        try:
+            guardian = Guardian.objects.get(user=user)
+        except Guardian.DoesNotExist:
+            return Response({'detail': 'Guardian not found.'}, status=404)
+
+        otp = request.data.get('otp')
+        new_pin_code = request.data.get('new_pin_code')
+
+        if guardian.pin_reset_otp != otp or not guardian.check_code(new_pin_code):
+            return Response({'detail': _('Invalid OTP or PIN code.')}, status=400)
+
+        guardian.set_code(new_pin_code)
+        guardian.pin_reset_otp = None
+        guardian.otp_created_at = None
+        guardian.save()
+
+        return Response({'detail': _('PIN code reset successfully.')}, status=200)
+    
 
 # Guardian Viewset 
 class GuardianViewSet(viewsets.ModelViewSet):

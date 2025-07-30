@@ -82,7 +82,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['name', 'phone_number', 'role', 'profile_picture', 'dependents_count'] 
+        fields = ['name', 'phone_number', 'role', 'profile_picture', 'address', 'dependents_count'] 
         read_only_fields = ['role']  # Read-only fields for the get endpoint
 
     # Get Dependents Count 
@@ -98,12 +98,39 @@ class UserProfileSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(obj.profile_picture.url) if request else obj.profile_picture.url
         return None
 
+
 # User Profile Update Serializer 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['name', 'phone_number', 'role', 'profile_picture']  # Define fields to update
+        fields = ['name', 'phone_number', 'role', 'profile_picture', 'address']  # Define fields to update
         read_only_fields = ['role', 'phone_number']
+
+
+# Set Guardian PIN Code Serializer 
+class SetGuardianPinCodeSerializer(serializers.Serializer):
+    pin_code = serializers.CharField(max_length=4, min_length=4, write_only=True)
+
+    def validate(self, attrs):
+        user = self.context['request'].user
+        if user.role != 'guardian':
+            raise serializers.ValidationError({"detail" : _("Only guardians can set PIN code.")})
+
+        try:
+            guardian = Guardian.objects.get(user=user)
+        except Guardian.DoesNotExist:
+            raise serializers.ValidationError({"detail" : _("Guardian not found.")})
+
+        if guardian.guardian_code_hashed:
+            raise serializers.ValidationError({"detail" : _("PIN code already set. You can reset it.")})
+
+        attrs['guardian'] = guardian
+        return attrs
+
+    def create(self, validated_data):
+        guardian = validated_data['guardian']
+        guardian.set_code(validated_data['pin_code'])
+        return guardian
 
 
 # Guardian Serializer 
@@ -114,6 +141,8 @@ class GuardianSerializer(serializers.ModelSerializer):
     is_active = serializers.BooleanField(source='user.is_active', required=False)
     is_block = serializers.BooleanField(source='user.is_block', required=False)
 
+    dependents = serializers.SerializerMethodField()
+
     class Meta:
         model = Guardian
         fields = [
@@ -123,9 +152,16 @@ class GuardianSerializer(serializers.ModelSerializer):
             'profile_picture',
             'is_active',
             'is_block',
+            'dependents',
             'created_at',
         ]
 
+    # Get Dependents 
+    def get_dependents(self, obj):
+        dependents = obj.dependents.all()
+        return DependentSerializer(dependents, many=True, context=self.context).data
+
+    # Create or Update Guardian 
     def create(self, validated_data):
         # Extract user data from validated_data 
         user_data = validated_data.pop('user', {})
@@ -180,7 +216,7 @@ class DependentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Dependent
-        fields = ['id', 'name', 'disability_type', 'control_method', 'date_birth', 'guardian']
+        fields = ['id', 'name', 'disability_type', 'control_method', 'date_birth', 'guardian', 'created_at', 'degree_type', 'marital_status', 'interest_field']
         
     def create(self, validated_data):
         guardian = self.context['request'].user.guardian

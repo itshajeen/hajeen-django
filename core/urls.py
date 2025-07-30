@@ -1,7 +1,7 @@
 from django.urls import include, path 
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework.routers import DefaultRouter
-from .views import DependentViewSet, GuardianViewSet, PhoneLoginAPIView, PhonePasswordLoginAPIView, VerifyOTPAPIView, UserProfileAPIView, DeleteAccountAPIView
+from .views import DependentViewSet, GuardianViewSet, PhoneLoginAPIView, PhonePasswordLoginAPIView, RequestGuardianPinResetView, ResetGuardianPinCodeView, SetGuardianPinCodeView, VerifyOTPAPIView, UserProfileAPIView, DeleteAccountAPIView
 
 # Create a router and register our viewsets with it 
 router = DefaultRouter()
@@ -18,4 +18,7 @@ urlpatterns = [
     path('verify-otp/', VerifyOTPAPIView.as_view(), name='verify_otp'),
     path('profile/', UserProfileAPIView.as_view(), name='user_profile'),
     path('delete-account/', DeleteAccountAPIView.as_view(), name='delete_account'), 
+    path('set-guardian-pin-code/', SetGuardianPinCodeView.as_view(), name='set_guardian_pin_code'),
+    path('request-guardian-pin-code/', RequestGuardianPinResetView.as_view(), name='request_guardian_pin_code'),
+    path('reset-guardian-pin-code/', ResetGuardianPinCodeView.as_view(), name='reset_guardian_pin_code'),
 ]
