@@ -79,6 +79,7 @@ class UserSerializer(serializers.ModelSerializer):
 # User Profile Serializer 
 class UserProfileSerializer(serializers.ModelSerializer):
     dependents_count = serializers.SerializerMethodField(read_only=True)
+    has_guardian_code = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = User
@@ -97,6 +98,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
         if obj.profile_picture and hasattr(obj.profile_picture, 'url'):
             return request.build_absolute_uri(obj.profile_picture.url) if request else obj.profile_picture.url
         return None
+    
+    # Check if Guardian has PIN Code 
+    def get_has_guardian_code(self, obj):
+        if obj.role == 'guardian' and hasattr(obj, 'guardian'):
+            return bool(obj.guardian.guardian_code_hashed)
+        return False
+
 
 
 # User Profile Update Serializer 
