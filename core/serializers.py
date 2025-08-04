@@ -82,7 +82,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['name', 'phone_number', 'role', 'profile_picture', 'address', 'dependents_count'] 
+        fields = ['name', 'phone_number', 'role', 'profile_picture', 'address', 'dependents_count', 'has_guardian_code'] 
         read_only_fields = ['role']  # Read-only fields for the get endpoint
 
     # Get Dependents Count 
