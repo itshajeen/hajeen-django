@@ -257,23 +257,30 @@ class DisabilityTypeSerializer(serializers.ModelSerializer):
 # Dependent Serializer 
 class DependentSerializer(serializers.ModelSerializer):
     guardian = SimpleGuardianSerializer(read_only=True)
+    interest_field = serializers.ListField(
+        child=serializers.ChoiceField(choices=Dependent.INTEREST_FIELD_CHOICES),
+        required=False
+    )
 
     class Meta:
         model = Dependent
-        fields = ['id', 'name', 'disability_type', 'control_method', 'gender', 'date_birth', 'guardian', 'created_at', 'degree_type', 'marital_status', 'interest_field']
-        
+        fields = [
+            'id', 'name', 'disability_type', 'control_method', 'gender', 'date_birth',
+            'guardian', 'created_at', 'degree_type', 'marital_status', 'interest_field'
+        ]
+
     def create(self, validated_data):
         guardian = self.context['request'].user.guardian
         if not guardian:
-            raise serializers.ValidationError({'detail': _('Guardian profile not found.')}) 
+            raise serializers.ValidationError({'detail': _('Guardian profile not found.')})
         return Dependent.objects.create(guardian=guardian, **validated_data)
 
     def validate(self, attrs):
-        # Validate control method and disability type 
+        # Validate control method
         if attrs['control_method'] not in dict(Dependent.CONTROL_METHOD_CHOICES).keys():
             raise serializers.ValidationError({'control_method': _('Invalid control method.')})
-                
-        # Validate date of birth 
+        
+        # Validate date of birth
         if 'date_birth' in attrs and attrs['date_birth'] is not None:
             today = timezone.now().date()
             if attrs['date_birth'] > today:

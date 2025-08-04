@@ -4,6 +4,7 @@ from django.core.validators import RegexValidator
 from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils.translation import gettext_lazy as _
+from multiselectfield import MultiSelectField
 
 
 # manager for the User model
@@ -140,8 +141,7 @@ class Dependent(models.Model):
         blank=True,
         verbose_name=_('Degree Type')
     )
-    interest_field = models.CharField(
-        max_length=255,
+    interest_field = MultiSelectField(
         choices=INTEREST_FIELD_CHOICES,
         null=True,
         blank=True,
