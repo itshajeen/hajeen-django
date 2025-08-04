@@ -26,11 +26,10 @@ class PhoneLoginSerializer(serializers.Serializer):
         if user.is_block :
             raise serializers.ValidationError({"detail": _('User account is blocked.')}) 
         
-        # Generate OTP
-        otp = str(random.randint(100000, 999999))
+        # Generate 4-digit OTP
+        otp = str(random.randint(1000, 9999))
         user.otp = otp
         user.save()
-
         # For development/testing purposes, print the OTP to console 
         print(f"OTP for {user.phone_number} is {otp}")
 
