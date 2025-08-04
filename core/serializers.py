@@ -272,10 +272,7 @@ class DependentSerializer(serializers.ModelSerializer):
         # Validate control method and disability type 
         if attrs['control_method'] not in dict(Dependent.CONTROL_METHOD_CHOICES).keys():
             raise serializers.ValidationError({'control_method': _('Invalid control method.')})
-        
-        if attrs['disability_type'] not in dict(Dependent.DISABILITY_TYPE_CHOICES).keys():
-            raise serializers.ValidationError({'disability_type': _('Invalid disability type.')})
-        
+                
         # Validate date of birth 
         if 'date_birth' in attrs and attrs['date_birth'] is not None:
             today = timezone.now().date()
