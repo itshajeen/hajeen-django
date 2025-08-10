@@ -1,5 +1,6 @@
 from rest_framework import viewsets
-from core.permissions import IsGuardianOwnDependent 
+from rest_framework.permissions import IsAdminUser 
+from core.pagination import DefaultPagination
 from .models import MessageType 
 from .serializers import MessageTypeSerializer 
 
@@ -8,10 +9,5 @@ from .serializers import MessageTypeSerializer
 class MessageTypeViewSet(viewsets.ModelViewSet):
     queryset = MessageType.objects.all()
     serializer_class = MessageTypeSerializer
-    permission_classes = [IsGuardianOwnDependent]  # Only allow guardians to manage their own message types 
-
-    def get_queryset(self):
-        guardian = self.request.user.guardian
-        if guardian:
-            return self.queryset.filter(guardian=guardian)
-        return self.queryset.none()  # Return empty queryset if no guardian found
+    permission_classes = [IsAdminUser]  # Only admins can manage message types 
+    pagination_class = DefaultPagination  # Disable pagination for simplicity 

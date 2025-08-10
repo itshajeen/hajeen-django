@@ -7,15 +7,14 @@ from .models import MessageType, Message
 class MessageTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = MessageType
-        fields = ['id', 'label', 'guardian']
-        read_only_fields = ['guardian']  # Guardian is set automatically based on request user  
+        fields = ['id', 'label', 'status', 'created_at']
 
-    def create(self, validated_data):
-        guardian = self.context['request'].user.guardian
-        if not guardian:
-            raise serializers.ValidationError({'detail': _('Guardian profile not found.')})
-        return MessageType.objects.create(guardian=guardian, **validated_data)
-        
+        read_only_fields = ['id', 'created_at']
+
+    def validate_status(self, value):
+        if value not in ['active', 'inactive']:
+            raise serializers.ValidationError({"detail" : _('Invalid status.')})
+        return value        
 
 # Message Serializer
 class MessageSerializer(serializers.ModelSerializer):
