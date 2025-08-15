@@ -7,14 +7,15 @@ from .models import MessageType, Message
 class MessageTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = MessageType
-        fields = ['id', 'label', 'status', 'created_at']
-
+        fields = ['id', 'label_ar', 'label_en', 'audio_file_ar', 'audio_file_en', 'status', 'created_at']
         read_only_fields = ['id', 'created_at']
 
     def validate_status(self, value):
         if value not in ['active', 'inactive']:
             raise serializers.ValidationError({"detail" : _('Invalid status.')})
         return value        
+
+
 
 # Message Serializer
 class MessageSerializer(serializers.ModelSerializer):
@@ -57,5 +58,10 @@ class MessageSerializer(serializers.ModelSerializer):
             message_type=message_type,
             **validated_data
         )
+    
+    def validate_message_type(self, value):
+        if not MessageType.objects.filter(id=value.id).exists():
+            raise serializers.ValidationError({'detail': _('Invalid message type.')}) 
+        return value
     
     

@@ -8,7 +8,10 @@ from core.models import Guardian, Dependent
 # MessageType Model
 class MessageType(models.Model):
     """Model to define different types of messages."""
-    label = models.CharField(max_length=100)
+    label_ar = models.CharField(max_length=100)
+    label_en = models.CharField(max_length=100)
+    audio_file_ar = models.FileField(upload_to='audio_messages/ar/', blank=True, null=True)
+    audio_file_en = models.FileField(upload_to='audio_messages/en/', blank=True, null=True)
     status = models.CharField(max_length=20, choices=[('active', _('Active')), ('inactive', _('Inactive'))], default='active')
     created_at = models.DateTimeField(auto_now_add=True)
 
