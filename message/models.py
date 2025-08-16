@@ -19,6 +19,16 @@ class MessageType(models.Model):
         return self.label
     
 
+# GuardianMessageType Model 
+class GuardianMessageType(models.Model):
+    guardian = models.ForeignKey(Guardian, on_delete=models.CASCADE, related_name="guardian_messages")
+    message_type = models.ForeignKey(MessageType, on_delete=models.CASCADE, related_name="guardian_messages")
+
+    class Meta:
+        unique_together = ('guardian', 'message_type')  
+    def __str__(self):
+        return f"{self.guardian.user.phone_number} - {self.message_type.label_en}"
+
 # Message Model 
 class Message(models.Model):
     guardian = models.ForeignKey(Guardian, on_delete=models.CASCADE, related_name='received_messages')

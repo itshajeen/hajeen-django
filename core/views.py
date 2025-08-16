@@ -132,7 +132,7 @@ class RequestGuardianPinResetView(APIView):
         except Guardian.DoesNotExist:
             return Response({'detail': 'Guardian not found.'}, status=404)
 
-        otp = str(random.randint(100000, 999999))
+        otp = str(random.randint(1000, 9999))
         guardian.pin_reset_otp = otp
         guardian.otp_created_at = timezone.now()
         guardian.save()
@@ -179,6 +179,27 @@ class ResetGuardianPinCodeView(APIView):
         return Response({'detail': _('PIN code reset successfully.')}, status=200)
     
 
+# Verify Guardian PIN Code API View
+class VerifyGuardianPinCodeView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        user = request.user
+        if user.role != 'guardian':
+            return Response({'detail': _('Only guardians can verify pin code.')}, status=403)
+        try:
+            guardian = Guardian.objects.get(user=user)
+        except Guardian.DoesNotExist:
+            return Response({'detail': 'Guardian not found.'}, status=404)
+        
+        pin_code = request.data.get('pin_code')
+        if not pin_code or not guardian.check_code(pin_code):
+            return Response({'detail': _('Invalid PIN code.'), 'is_verified' : False}, status=400)
+        
+        # If pin_code is valid, return success response
+        return Response({'detail': _('PIN code verified successfully.'), 'is_verified' : True }, status=200)
+    
+    
 # Guardian Viewset 
 class GuardianViewSet(viewsets.ModelViewSet):
     queryset = Guardian.objects.select_related('user').all()
@@ -236,3 +257,5 @@ class DependentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return super().get_queryset().order_by('-date_birth')
+
+

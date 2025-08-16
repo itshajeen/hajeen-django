@@ -82,7 +82,6 @@ class Guardian(models.Model):
     def check_code(self, raw_code):
         return check_password(raw_code, self.guardian_code_hashed)
 
-
     def __str__(self):
         return self.user.phone_number
     
