@@ -108,12 +108,12 @@ class GuardianMessageTypeBulkUpsertSerializer(serializers.Serializer):
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
-        fields = ['id', 'guardian', 'dependent', 'message_type', 'created_at', 'is_seen', 'is_sms', 'is_emergency']
+        fields = ['id', 'guardian', 'dependent', 'message_type', 'created_at', 'is_seen', 'is_sms', 'is_voice']
         read_only_fields = ['guardian', 'dependent', 'created_at', 'is_seen']
 
     def validate(self, attrs):
-        if attrs.get('is_sms') and attrs.get('is_emergency'):
-            raise serializers.ValidationError({"detail": _('A message cannot be both SMS and emergency.')})
+        if attrs.get('is_sms') and attrs.get('is_voice'):
+            raise serializers.ValidationError({"detail": _('A message cannot be both SMS and voice.')})
         return attrs
     
     def __to_representation__(self, instance):
