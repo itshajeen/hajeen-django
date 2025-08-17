@@ -1,6 +1,6 @@
 from django.urls import path, include 
 from rest_framework.routers import DefaultRouter
-from .views import GuardianMessagesAPIView, MessageTypeViewSet, GuardianMessageTypeViewSet, MessageViewSet
+from .views import GuardianMessagesAPIView, MarkMessagesReadAPIView, MessageTypeViewSet, GuardianMessageTypeViewSet, MessageViewSet
 
 router = DefaultRouter()
 router.register('message-types', MessageTypeViewSet, basename='message-types') 
@@ -12,4 +12,6 @@ router.register('messages', MessageViewSet, basename='messages')
 urlpatterns = [
     path('', include(router.urls)),  # Include the router URLs
     path('guardian/messages/', GuardianMessagesAPIView.as_view(), name='guardian-messages'),
+    path('guardian/messages/mark-read/', MarkMessagesReadAPIView.as_view(), name='guardian-messages-mark-read'),
+
 ]

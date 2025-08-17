@@ -118,3 +118,26 @@ class GuardianMessagesAPIView(APIView):
             "new": [serialize_message(m) for m in new_messages],
             "previous": [serialize_message(m) for m in previous_messages],
         })
+
+
+# MarkMessagesReadAPIView to mark messages as read 
+class MarkMessagesReadAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        # Get the guardian profile 
+        guardian = getattr(request.user, 'guardian', None)
+        if not guardian:
+            return Response({'detail': _('Guardian profile not found.')}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get the dependent_id from request data 
+        dependent_id = request.data.get('dependent_id')
+        queryset = Message.objects.filter(guardian=guardian, is_seen=False)
+        if dependent_id:
+            queryset = queryset.filter(dependent_id=dependent_id)
+        
+        # Update the messages to mark them as read 
+        updated_count = queryset.update(is_seen=True)
+        return Response({
+            'message': f'{updated_count} messages marked as read.'
+        }, status=status.HTTP_200_OK)
