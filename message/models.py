@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from core.models import Guardian, Dependent 
 
@@ -34,11 +35,19 @@ class GuardianMessageType(models.Model):
 class Message(models.Model):
     guardian = models.ForeignKey(Guardian, on_delete=models.CASCADE, related_name='received_messages')
     dependent = models.ForeignKey(Dependent, on_delete=models.CASCADE, related_name='sent_messages')
-    message_type = models.ForeignKey(GuardianMessageType, on_delete=models.CASCADE)
+    message_type = models.ForeignKey(GuardianMessageType, on_delete=models.CASCADE, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     is_seen = models.BooleanField(default=False)
     is_sms = models.BooleanField(default=False)
     is_voice = models.BooleanField(default=False)
+    is_emergency = models.BooleanField(default=False)
+
+
+    def clean(self):
+        if not self.is_emergency and not self.message_type:
+            raise ValidationError("message_type is required for non-emergency messages.")
+        if self.is_emergency and self.message_type:
+            raise ValidationError("Emergency messages should not have a message_type.")
 
     def __str__(self):
         return f"{self.guardian} -> {self.dependent}: {self.message_type} ({self.created_at})"

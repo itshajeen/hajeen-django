@@ -103,22 +103,44 @@ class GuardianMessageTypeBulkUpsertSerializer(serializers.Serializer):
         ]
 
 
-
-# Message Serializer
+# Message Serializer 
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
-        fields = ['id', 'guardian', 'dependent', 'message_type', 'created_at', 'is_seen', 'is_sms', 'is_voice']
+        fields = [
+            'id', 'guardian', 'dependent', 'message_type', 'created_at', 
+            'is_seen', 'is_sms', 'is_voice', 'is_emergency'
+        ]
         read_only_fields = ['guardian', 'dependent', 'created_at', 'is_seen']
 
     def validate(self, attrs):
+        # check that message type with is_sms or is_voice 
         if attrs.get('is_sms') and attrs.get('is_voice'):
-            raise serializers.ValidationError({"detail": _('A message cannot be both SMS and voice.')})
+            raise serializers.ValidationError(
+                {"detail": _('A message cannot be both SMS and voice.')}
+            )
+
+        # check that is_emergency 
+        is_emergency = attrs.get('is_emergency', False)
+        message_type = attrs.get('message_type', None)
+
+        if is_emergency and message_type is not None:
+            raise serializers.ValidationError(
+                {"detail": _('Emergency messages should not have a message type.')}
+            )
+        if not is_emergency and message_type is None:
+            raise serializers.ValidationError(
+                {"detail": _('Non-emergency messages must have a message type.')}
+            )
+
         return attrs
-    
-    def __to_representation__(self, instance):
+
+    def to_representation(self, instance):
         response = super().to_representation(instance)
-        response['message_type'] = GuardianMessageTypeSerializer(instance.message_type).data
+        if instance.message_type:
+            response['message_type'] = GuardianMessageTypeSerializer(instance.message_type).data
+        else:
+            response['message_type'] = None
         return response
     
 
