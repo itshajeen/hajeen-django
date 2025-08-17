@@ -4,7 +4,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from message.serializers import MessageMiniSerializer
-from .models import  DisabilityType, Guardian, Dependent, User 
+from .models import  AppSettings, DisabilityType, Guardian, Dependent, User 
 from .utils import send_sms
 import random
 
@@ -82,10 +82,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
     dependents_count = serializers.SerializerMethodField(read_only=True)
     has_guardian_code = serializers.SerializerMethodField(read_only=True)
     messages_count = serializers.SerializerMethodField(read_only=True) 
+    remaining_sms = serializers.SerializerMethodField(read_only=True) 
 
     class Meta:
         model = User
-        fields = ['name', 'phone_number', 'role', 'profile_picture', 'address', 'dependents_count', 'has_guardian_code', 'messages_count'] 
+        fields = ['name', 'phone_number', 'role', 'profile_picture', 'address', 'dependents_count', 'has_guardian_code', 'messages_count', 'remaining_sms'] 
         read_only_fields = ['role']  # Read-only fields for the get endpoint
 
     # Get Dependents Count 
@@ -112,6 +113,18 @@ class UserProfileSerializer(serializers.ModelSerializer):
         if obj.role == 'guardian' and hasattr(obj, 'guardian'):
             return bool(obj.guardian.guardian_code_hashed)
         return False
+
+    # Get Remaining SMS Count 
+    def get_remaining_sms(self, obj):
+        if obj.role != 'guardian' or not hasattr(obj, 'guardian'):
+            return None
+        from core.models import AppSettings  # import inside to avoid circular imports
+        from message.models import Message 
+        settings = AppSettings.objects.first()
+        if not settings:
+            return 0
+        sent_count = Message.objects.filter(guardian=obj.guardian, is_sms=True).count()
+        return max(settings.max_sms_message - sent_count, 0)
 
 
 
@@ -314,3 +327,10 @@ class DependentSerializer(serializers.ModelSerializer):
         representation['guardian'] = SimpleGuardianSerializer(instance.guardian, context=self.context).data
         representation['disability_type'] = DisabilityTypeSerializer(instance.disability_type, context=self.context).data
         return representation
+
+
+# App Settings Serializer 
+class AppSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AppSettings
+        fields = '__all__'

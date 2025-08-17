@@ -11,8 +11,8 @@ from rest_framework.decorators import action
 from core.pagination import DefaultPagination
 from core.permissions import IsAdminOrReadOnly, IsGuardianOwnDependent
 from core.utils import send_sms
-from .models import Dependent, DisabilityType, Guardian, User 
-from .serializers import DependentSerializer, DisabilityTypeSerializer, GuardianSerializer, PhoneLoginSerializer, PhonePasswordLoginSerializer, SetGuardianPinCodeSerializer, UserProfileSerializer, UserProfileUpdateSerializer
+from .models import AppSettings, Dependent, DisabilityType, Guardian, User 
+from .serializers import AppSettingsSerializer, DependentSerializer, DisabilityTypeSerializer, GuardianSerializer, PhoneLoginSerializer, PhonePasswordLoginSerializer, SetGuardianPinCodeSerializer, UserProfileSerializer, UserProfileUpdateSerializer
 
 
 # Phone Login API View
@@ -271,3 +271,25 @@ class DependentViewSet(viewsets.ModelViewSet):
         return Response({"message": "Device registered successfully"}, status=status.HTTP_200_OK)
 
 
+
+# App Settings View 
+class AppSettingsView(APIView):
+    def get_object(self):
+        # App Settings 
+        obj = AppSettings.objects.first()
+        if not obj:
+            obj = AppSettings.objects.create()
+        return obj
+
+    def get(self, request):
+        settings_instance = self.get_object()
+        serializer = AppSettingsSerializer(settings_instance)
+        return Response(serializer.data)
+
+    def post(self, request):
+        settings_instance = self.get_object()
+        serializer = AppSettingsSerializer(settings_instance, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

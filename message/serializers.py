@@ -108,7 +108,7 @@ class GuardianMessageTypeBulkUpsertSerializer(serializers.Serializer):
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
-        fields = ['id', 'guardian', 'dependent', 'message_type', 'created_at', 'is_seen']
+        fields = ['id', 'guardian', 'dependent', 'message_type', 'created_at', 'is_seen', 'is_sms']
         read_only_fields = ['guardian', 'dependent', 'created_at', 'is_seen']
 
     

@@ -25,13 +25,14 @@ class userManager(BaseUserManager):
         return self.create_user(phone_number, password, **extra_fields)
 
 
+# Phone Regex 
+phone_regex = RegexValidator(
+    regex=r'^\+?1?\d{9,15}$', 
+    message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed."
+)
+
 # User model
 class User(AbstractBaseUser, PermissionsMixin):
-    # Phone Regex 
-    phone_regex = RegexValidator(
-        regex=r'^\+?1?\d{9,15}$', 
-        message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed."
-    )
     # User Roles 
     ROLES_CHOICES = (
         ('admin', _('Admin')),
@@ -158,3 +159,8 @@ class Dependent(models.Model):
     def __str__(self):
         return self.user.phone_number
 
+
+# App Settings 
+class AppSettings(models.Model):
+    whatsapp_number = models.CharField(validators=[phone_regex], max_length=17, unique=True)  # max_length 17 for country code and number
+    max_sms_message = models.IntegerField(default=1, verbose_name=_("Max SMS Messages"))
