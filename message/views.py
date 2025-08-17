@@ -50,6 +50,7 @@ class MessageViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         registration_id = request.data.get('registration_id')
         message_type_id = request.data.get('message_type_id')
+        is_sms = request.data.get('is_sms', False)
 
         if not registration_id or not message_type_id:
             return Response(
@@ -68,7 +69,8 @@ class MessageViewSet(viewsets.ModelViewSet):
         message = Message.objects.create(
             guardian=guardian,
             dependent=dependent,
-            message_type=message_type
+            message_type=message_type,
+            is_sms = is_sms 
         )
 
         serializer = self.get_serializer(message)
