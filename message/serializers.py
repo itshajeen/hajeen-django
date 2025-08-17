@@ -106,49 +106,23 @@ class GuardianMessageTypeBulkUpsertSerializer(serializers.Serializer):
 
 # Message Serializer
 class MessageSerializer(serializers.ModelSerializer):
-    dependent_name = serializers.CharField(source='dependent.name', read_only=True)
-    guardian_name  = serializers.CharField(source='guardian.username', read_only=True)
-    message_type_display = serializers.CharField(source='get_message_type_display', read_only=True)
-    
     class Meta:
         model = Message
-        fields = [
-            'id',
-            'guardian_name',   # display only
-            'dependent_name',  # display only
-            'message_type',    # input from user or device
-            'message_type_display',
-            'created_at',
-        ]
-        read_only_fields = [
-            'id',
-            'guardian_name',
-            'dependent_name',
-            'message_type_display',
-            'created_at',
-        ]
+        fields = ['id', 'guardian', 'dependent', 'message_type', 'created_at', 'is_seen']
+        read_only_fields = ['guardian', 'dependent', 'created_at', 'is_seen']
+
     
-    def create(self, validated_data):
-        guardian = self.context['request'].user.guardian
-        if not guardian:
-            raise serializers.ValidationError({'detail': _('Guardian profile not found.')})
-        
-        dependent_id = validated_data.pop('dependent').id
-        message_type = validated_data.pop('message_type')
-        dependent = guardian.dependents.filter(id=dependent_id).first()
-        if not dependent:
-            raise serializers.ValidationError({'detail': _('Dependent not found for this guardian.')})
-        
-        return Message.objects.create(
-            guardian=guardian,
-            dependent=dependent,
-            message_type=message_type,
-            **validated_data
-        )
+    def __to_representation__(self, instance):
+        response = super().to_representation(instance)
+        response['message_type'] = GuardianMessageTypeSerializer(instance.message_type).data
+        return response
     
-    def validate_message_type(self, value):
-        if not MessageType.objects.filter(id=value.id).exists():
-            raise serializers.ValidationError({'detail': _('Invalid message type.')}) 
-        return value
-    
-    
+
+# Mini Serializer for Message 
+class MessageMiniSerializer(serializers.ModelSerializer):
+    message_type = serializers.CharField(source='message_type.message_type.label_ar') 
+    created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M")
+
+    class Meta:
+        model = Message
+        fields = ['id', 'message_type', 'created_at', 'is_seen']

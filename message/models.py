@@ -29,11 +29,12 @@ class GuardianMessageType(models.Model):
     def __str__(self):
         return f"{self.guardian.user.phone_number} - {self.message_type.label_en}"
 
+
 # Message Model 
 class Message(models.Model):
     guardian = models.ForeignKey(Guardian, on_delete=models.CASCADE, related_name='received_messages')
     dependent = models.ForeignKey(Dependent, on_delete=models.CASCADE, related_name='sent_messages')
-    message_type = models.ForeignKey(MessageType, on_delete=models.CASCADE)
+    message_type = models.ForeignKey(GuardianMessageType, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     is_seen = models.BooleanField(default=False)
 

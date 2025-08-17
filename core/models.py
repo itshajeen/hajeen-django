@@ -146,6 +146,13 @@ class Dependent(models.Model):
         blank=True,
         verbose_name=_('Field of Interest')
     )
+    # Device Registration ID for Push Notifications 
+    registration_id = models.CharField(
+        max_length=255, 
+        null=True, 
+        blank=True,
+        verbose_name=_("Device Registration ID")
+    )
     created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):

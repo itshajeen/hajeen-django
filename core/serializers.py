@@ -2,6 +2,8 @@ from django.contrib.auth import authenticate
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone 
 from rest_framework import serializers
+
+from message.serializers import MessageMiniSerializer
 from .models import  DisabilityType, Guardian, Dependent, User 
 from .utils import send_sms
 import random
@@ -79,16 +81,23 @@ class UserSerializer(serializers.ModelSerializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     dependents_count = serializers.SerializerMethodField(read_only=True)
     has_guardian_code = serializers.SerializerMethodField(read_only=True)
+    messages_count = serializers.SerializerMethodField(read_only=True) 
 
     class Meta:
         model = User
-        fields = ['name', 'phone_number', 'role', 'profile_picture', 'address', 'dependents_count', 'has_guardian_code'] 
+        fields = ['name', 'phone_number', 'role', 'profile_picture', 'address', 'dependents_count', 'has_guardian_code', 'messages_count'] 
         read_only_fields = ['role']  # Read-only fields for the get endpoint
 
     # Get Dependents Count 
     def get_dependents_count(self, obj):
         if obj.role == 'guardian' and hasattr(obj, 'guardian'):
             return obj.guardian.dependents.count()
+        return 0
+    
+    # Get Messages Count
+    def get_messages_count(self, obj):
+        if obj.role == 'guardian' and hasattr(obj, 'guardian'):
+            return obj.guardian.received_messages.count()
         return 0
 
     # Get Profile Picture 
@@ -261,12 +270,14 @@ class DependentSerializer(serializers.ModelSerializer):
         child=serializers.ChoiceField(choices=Dependent.INTEREST_FIELD_CHOICES),
         required=False
     )
+    # last messages for the dependent 
+    last_messages = serializers.SerializerMethodField(read_only=True)  
 
     class Meta:
         model = Dependent
         fields = [
             'id', 'name', 'disability_type', 'control_method', 'gender', 'date_birth',
-            'guardian', 'created_at', 'degree_type', 'marital_status', 'interest_field'
+            'guardian', 'created_at', 'degree_type', 'marital_status', 'interest_field', 'last_messages'
         ]
 
     def create(self, validated_data):
@@ -291,6 +302,12 @@ class DependentSerializer(serializers.ModelSerializer):
             if age > 200:
                 raise serializers.ValidationError({'date_birth': _('Age cannot be more than 200 years.')})
         return attrs
+
+
+    def get_last_messages(self, obj):
+        messages = obj.sent_messages.order_by('-created_at')[:5]  # last five messages
+        return MessageMiniSerializer(messages, many=True, context=self.context).data
+
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)

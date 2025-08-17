@@ -258,4 +258,16 @@ class DependentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return super().get_queryset().order_by('-date_birth')
 
+    # Register Device for Push Notifications 
+    @action(detail=True, methods=['post'], url_path='register-device')
+    def register_device(self, request, pk=None):
+        dependent = self.get_object()
+        registration_id = request.data.get("registration_id")
+        if not registration_id:
+            return Response({"detail": _("registration_id is required")}, status=status.HTTP_400_BAD_REQUEST)
+        
+        dependent.registration_id = registration_id
+        dependent.save()
+        return Response({"message": "Device registered successfully"}, status=status.HTTP_200_OK)
+
 
