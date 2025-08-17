@@ -38,6 +38,7 @@ class Message(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     is_seen = models.BooleanField(default=False)
     is_sms = models.BooleanField(default=False)
+    is_emergency = models.BooleanField(default=False) 
 
     def __str__(self):
         return f"{self.guardian} -> {self.dependent}: {self.message_type} ({self.created_at})"
