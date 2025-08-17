@@ -250,14 +250,23 @@ class DisabilityTypeViewSet(viewsets.ModelViewSet):
 
 # Dependent Viewset 
 class DependentViewSet(viewsets.ModelViewSet):
-    queryset = Dependent.objects.select_related('guardian').all()
     serializer_class = DependentSerializer
     permission_classes = [IsGuardianOwnDependent]
     pagination_class = DefaultPagination
 
     def get_queryset(self):
-        return super().get_queryset().order_by('-date_birth')
-
+        user = self.request.user
+        if user.role == 'guardian':
+            # If the user is a guardian, filter dependents by their guardian
+            return super().get_queryset().filter(guardian__user=user).order_by('-date_birth')
+        elif user.role == 'admin':
+            # If the user is an admin, return all dependents
+            return super().get_queryset().order_by('-date_birth')
+        else:
+            # For other roles, return an empty queryset
+            return Dependent.objects.none()
+        
+    
     # Register Device for Push Notifications 
     @action(detail=True, methods=['post'], url_path='register-device')
     def register_device(self, request, pk=None):
