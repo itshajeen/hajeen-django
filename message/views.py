@@ -51,38 +51,54 @@ class MessageViewSet(viewsets.ModelViewSet):
         registration_id = request.data.get('registration_id')
         message_type_id = request.data.get('message_type_id')
         is_sms = request.data.get('is_sms', False)
+        is_emergency = request.data.get('is_emergency', False)
 
-        if not registration_id or not message_type_id:
+        # registration_id is always required
+        if not registration_id:
             return Response(
-                {"detail": _("registration_id and message_type_id are required")},
+                {"detail": _("registration_id is required.")},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Get the dependent based on registration_id 
+        # Get dependent and guardian
         dependent = get_object_or_404(Dependent, registration_id=registration_id)
         guardian = dependent.guardian
 
-        # Check if guardian message type exists 
-        message_type = get_object_or_404(GuardianMessageType, id=message_type_id)
+        message_type = None
+        if is_emergency:
+            if message_type_id:
+                return Response(
+                    {"detail": _("Emergency messages should not have a message_type_id.")},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        else:
+            if not message_type_id:
+                return Response(
+                    {"detail": _("message_type_id is required for non-emergency messages.")},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            message_type = get_object_or_404(GuardianMessageType, id=message_type_id)
 
-        # Create the message 
+        # Create message
         message = Message.objects.create(
             guardian=guardian,
             dependent=dependent,
             message_type=message_type,
-            is_sms = is_sms 
+            is_sms=is_sms,
+            is_emergency=is_emergency
         )
 
         serializer = self.get_serializer(message)
-        return Response({"message" : _('Message sent successfully'), "data" : serializer.data}, status=status.HTTP_201_CREATED)
+        return Response(
+            {"message": _('Message sent successfully'), "data": serializer.data},
+            status=status.HTTP_201_CREATED
+        )
 
-    
     def get_queryset(self):
         guardian = getattr(self.request.user, 'guardian', None)
         if guardian:
             return self.queryset.filter(guardian=guardian)
-        
-        return self.queryset.none() 
+        return self.queryset.none()
     
 
 # GuardianMessagesAPIView to get messages for a guardian 
@@ -109,10 +125,16 @@ class GuardianMessagesAPIView(APIView):
         previous_messages = messages.filter(is_seen=True).order_by('-created_at')
 
         def serialize_message(msg):
+            if msg.is_emergency:
+                label = _("Emergency Message")
+            elif msg.message_type:
+                label = msg.message_type.message_type.label_ar
+            else:
+                label = _("Unknown")
             return {
                 "id": msg.id,
                 "dependent_name": msg.dependent.name,
-                "message_label": msg.message_type.message_type.label_ar,
+                "message_label": label,
                 "created_at": msg.created_at.strftime('%Y/%m/%d %I:%M%p'),
             }
 
@@ -120,26 +142,3 @@ class GuardianMessagesAPIView(APIView):
             "new": [serialize_message(m) for m in new_messages],
             "previous": [serialize_message(m) for m in previous_messages],
         })
-
-
-# MarkMessagesReadAPIView to mark messages as read 
-class MarkMessagesReadAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        # Get the guardian profile 
-        guardian = getattr(request.user, 'guardian', None)
-        if not guardian:
-            return Response({'detail': _('Guardian profile not found.')}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Get the dependent_id from request data 
-        dependent_id = request.data.get('dependent_id')
-        queryset = Message.objects.filter(guardian=guardian, is_seen=False)
-        if dependent_id:
-            queryset = queryset.filter(dependent_id=dependent_id)
-        
-        # Update the messages to mark them as read 
-        updated_count = queryset.update(is_seen=True)
-        return Response({
-            'message': f'{updated_count} messages marked as read.'
-        }, status=status.HTTP_200_OK)
