@@ -250,6 +250,7 @@ class DisabilityTypeViewSet(viewsets.ModelViewSet):
 
 # Dependent Viewset 
 class DependentViewSet(viewsets.ModelViewSet):
+    queryset = Dependent.objects.all()
     serializer_class = DependentSerializer
     permission_classes = [IsGuardianOwnDependent]
     pagination_class = DefaultPagination
