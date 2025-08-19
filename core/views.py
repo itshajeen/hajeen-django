@@ -280,12 +280,27 @@ class DependentViewSet(viewsets.ModelViewSet):
     def register_device(self, request, pk=None):
         dependent = self.get_object()
         registration_id = request.data.get("registration_id")
+
         if not registration_id:
-            return Response({"detail": _("registration_id is required")}, status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response(
+                {"detail": _("registration_id is required")},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        # Check that registration id exists 
+        exists = Dependent.objects.filter(registration_id=registration_id).exclude(pk=dependent.pk).exists()
+        if exists:
+            return Response(
+                {"detail": _("This registration_id is already used by another dependent.")},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         dependent.registration_id = registration_id
         dependent.save()
-        return Response({"message": "Device registered successfully"}, status=status.HTTP_200_OK)
+
+        return Response(
+            {"message": _("Device registered successfully")},
+            status=status.HTTP_200_OK
+        )
 
 
 
