@@ -1,18 +1,25 @@
 import random
+from datetime import date, timedelta
 from django.utils.translation import gettext_lazy as _ 
 from django.utils import timezone
+from django.db.models import Count
+from django.db.models.functions import TruncMonth
+from django.utils import timezone
+from rest_framework.views import APIView
+from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import viewsets, status
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.decorators import action
-
 from core.pagination import DefaultPagination
 from core.permissions import IsAdminOrReadOnly, IsGuardianOwnDependent
 from core.utils import send_sms
+from message.models import GuardianMessageType, Message, MessageType 
 from .models import AppSettings, Dependent, DisabilityType, Guardian, User 
 from .serializers import AppSettingsSerializer, DependentSerializer, DisabilityTypeSerializer, GuardianSerializer, PhoneLoginSerializer, PhonePasswordLoginSerializer, SetGuardianPinCodeSerializer, UserProfileSerializer, UserProfileUpdateSerializer
+
 
 
 # Phone Login API View
@@ -303,3 +310,134 @@ class AppSettingsView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+# Dashboard Stats View 
+class DashboardStatsView(APIView):
+    """
+    Dashboard statistics view (filter by date range)
+    """
+
+    def get(self, request, *args, **kwargs):
+        today = timezone.now().date()
+
+        # Get start date and end date 
+        start_date = request.query_params.get("start_date")
+        end_date = request.query_params.get("end_date")
+
+        # Convert date 
+        if start_date:
+            start_date = date.fromisoformat(start_date)  # format: YYYY-MM-DD
+        if end_date:
+            end_date = date.fromisoformat(end_date)
+
+        # Filter Querysets 
+        messages_qs = Message.objects.all()
+        users_qs = User.objects.all()
+        dependents_qs = Dependent.objects.all()
+        guardian_msgtype_qs = GuardianMessageType.objects.all()
+        msgtype_qs = MessageType.objects.all()
+
+        if start_date and end_date:
+            messages_qs = messages_qs.filter(created_at__date__range=[start_date, end_date])
+            users_qs = users_qs.filter(date_joined__date__range=[start_date, end_date]) if hasattr(User, "date_joined") else users_qs
+            dependents_qs = dependents_qs.filter(created_at__date__range=[start_date, end_date])
+            guardian_msgtype_qs = guardian_msgtype_qs.filter(guardian__created_at__date__range=[start_date, end_date])
+
+        elif start_date:
+            messages_qs = messages_qs.filter(created_at__date=start_date)
+            users_qs = users_qs.filter(date_joined__date=start_date) if hasattr(User, "date_joined") else users_qs
+            dependents_qs = dependents_qs.filter(created_at__date=start_date)
+            guardian_msgtype_qs = guardian_msgtype_qs.filter(guardian__created_at__date=start_date)
+
+        # Total Users 
+        total_users = users_qs.count()
+
+        # Total Messages 
+        total_messages = messages_qs.count()
+        today_messages = messages_qs.filter(created_at__date=today).count()
+
+        # Messages according to month 
+        messages_by_month = (
+            messages_qs.annotate(month=TruncMonth("created_at"))
+            .values("month")
+            .annotate(count=Count("id"))
+            .order_by("month")
+        )
+
+        # Average dependents age 
+        dependents = dependents_qs.exclude(date_birth=None)
+        ages = [
+            (date.today().year - d.date_birth.year)
+            - ((date.today().month, date.today().day) < (d.date_birth.month, d.date_birth.day))
+            for d in dependents
+        ]
+        average_age = sum(ages) / len(ages) if ages else 0
+
+        # sos requests count 
+        sos_requests = messages_qs.filter(is_emergency=True).count()
+
+        # Demographic distribution
+        gender_distribution = dependents_qs.values("gender").annotate(count=Count("id"))
+        marital_distribution = dependents_qs.values("marital_status").annotate(count=Count("id"))
+
+        # Communication statistics
+        total_interactions = messages_qs.count()
+        text_messages = messages_qs.filter(is_sms=True).count()
+        voice_messages = messages_qs.filter(is_voice=True).count()
+
+        # Count how many times each message type was linked to guardians
+        activation_counts = guardian_msgtype_qs.values(
+            "message_type__id", "message_type__label_en", "message_type__label_ar"
+        ).annotate(activation_count=Count("id"))
+
+        # Count how many times messages of each type were sent
+        sent_counts = messages_qs.filter(message_type__isnull=False).values(
+            "message_type__message_type__id",
+            "message_type__message_type__label_en",
+            "message_type__message_type__label_ar"
+        ).annotate(sent_count=Count("id"))
+
+        # Merge activation and sent counts by message type
+        msgtype_stats = []
+        sent_lookup = {
+            (s["message_type__message_type__id"]): s["sent_count"]
+            for s in sent_counts
+        }
+        for item in activation_counts:
+            msg_id = item["message_type__id"]
+            msgtype_stats.append({
+                "id": msg_id,
+                "label_en": item["message_type__label_en"],
+                "label_ar": item["message_type__label_ar"],
+                "activation_count": item["activation_count"],
+                "sent_count": sent_lookup.get(msg_id, 0)
+            })
+
+        data = {
+            "users": {
+                "total": total_users,
+            },
+            "messages": {
+                "total": total_messages,
+                "today": today_messages,
+                "by_month": list(messages_by_month),
+            },
+            "age": {
+                "average": round(average_age, 2),
+            },
+            "sos": sos_requests,
+            "demographics": {
+                "gender": list(gender_distribution),
+                "marital": list(marital_distribution),
+            },
+            "communication": {
+                "total_interactions": total_interactions,
+                "text_messages": text_messages,
+                "voice_messages": voice_messages,
+            },
+            "message_types": msgtype_stats,  
+        }
+
+        return Response(data)

@@ -285,12 +285,13 @@ class DependentSerializer(serializers.ModelSerializer):
     )
     # last messages for the dependent 
     last_messages = serializers.SerializerMethodField(read_only=True)  
+    last_activity = serializers.SerializerMethodField(read_only=True)  
 
     class Meta:
         model = Dependent
         fields = [
             'id', 'name', 'disability_type', 'control_method', 'gender', 'date_birth',
-            'guardian', 'created_at', 'degree_type', 'marital_status', 'interest_field', 'last_messages'
+            'guardian', 'created_at', 'degree_type', 'marital_status', 'interest_field', 'last_messages', 'last_activity'
         ]
 
     def create(self, validated_data):
@@ -320,6 +321,17 @@ class DependentSerializer(serializers.ModelSerializer):
     def get_last_messages(self, obj):
         messages = obj.sent_messages.order_by('-created_at')[:5]  # last five messages
         return MessageMiniSerializer(messages, many=True, context=self.context).data
+
+
+    def get_last_activity(self, obj):
+        last_message = obj.sent_messages.order_by('-created_at').first()
+        if last_message:
+            return {
+                "id": last_message.id,
+                "created_at": last_message.created_at,
+                "type": last_message.message_type.message_type.label_en if last_message.message_type else None,
+            }
+        return None
 
 
     def to_representation(self, instance):
