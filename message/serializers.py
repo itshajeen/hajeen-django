@@ -146,9 +146,14 @@ class MessageSerializer(serializers.ModelSerializer):
 
 # Mini Serializer for Message 
 class MessageMiniSerializer(serializers.ModelSerializer):
-    message_type = serializers.CharField(source='message_type.message_type.label_ar') 
+    message_type = serializers.SerializerMethodField()
     created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M")
 
     class Meta:
         model = Message
         fields = ['id', 'message_type', 'created_at', 'is_seen']
+
+    def get_message_type(self, obj):
+        if obj.message_type and obj.message_type.message_type:
+            return obj.message_type.message_type.label_ar
+        return None
