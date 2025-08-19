@@ -2,6 +2,9 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from core.models import Guardian, Dependent 
+import os
+from django.utils.text import slugify
+from uuid import uuid4
 
 # Create your models here.
 
@@ -9,10 +12,32 @@ from core.models import Guardian, Dependent
 # MessageType Model
 class MessageType(models.Model):
     """Model to define different types of messages."""
+
+    def rename_audio_file_ar(instance, filename):
+        base, ext = os.path.splitext(filename)
+        safe_name = slugify(base)[:50]  # Split first 50 chars 
+        return f"audio_messages/ar/{uuid4().hex}_{safe_name}{ext}"
+
+    def rename_audio_file_en(instance, filename):
+        base, ext = os.path.splitext(filename)
+        safe_name = slugify(base)[:50]
+        return f"audio_messages/en/{uuid4().hex}_{safe_name}{ext}"
+
     label_ar = models.CharField(max_length=100)
     label_en = models.CharField(max_length=100)
-    audio_file_ar = models.FileField(upload_to='audio_messages/ar/', blank=True, null=True)
-    audio_file_en = models.FileField(upload_to='audio_messages/en/', blank=True, null=True)
+    audio_file_ar = models.FileField(
+        upload_to=rename_audio_file_ar, 
+        max_length=255, 
+        blank=True, 
+        null=True
+    )
+
+    audio_file_en = models.FileField(
+        upload_to=rename_audio_file_en, 
+        max_length=255, 
+        blank=True, 
+        null=True   
+    )
     status = models.CharField(max_length=20, choices=[('active', _('Active')), ('inactive', _('Inactive'))], default='active')
     created_at = models.DateTimeField(auto_now_add=True)
 
