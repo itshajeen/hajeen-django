@@ -1,4 +1,6 @@
+from datetime import timedelta
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import viewsets, status, filters 
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -99,7 +101,7 @@ class MessageViewSet(viewsets.ModelViewSet):
         if guardian:
             return self.queryset.filter(guardian=guardian)
         return self.queryset.none()
-    
+
 
 # GuardianMessagesAPIView to get messages for a guardian 
 class GuardianMessagesAPIView(APIView):
@@ -120,9 +122,13 @@ class GuardianMessagesAPIView(APIView):
         if dependent_id:
             messages = messages.filter(dependent_id=dependent_id)
 
-        # Distribute messages into new and previous based on is_seen status 
-        new_messages = messages.filter(is_seen=False).order_by('-created_at')
-        previous_messages = messages.filter(is_seen=True).order_by('-created_at')
+        now = timezone.now()
+        ten_minutes_ago = now - timedelta(minutes=10)
+
+        # New Message which send 10 mins ago 
+        new_messages = messages.filter(created_at__gte=ten_minutes_ago).order_by('-created_at')
+        # Pervious nessage which send before 10 mins ago 
+        previous_messages = messages.filter(created_at__lt=ten_minutes_ago).order_by('-created_at')
 
         def serialize_message(msg):
             if msg.is_emergency:
