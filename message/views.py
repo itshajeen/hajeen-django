@@ -8,7 +8,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from core.models import Dependent
 from core.pagination import DefaultPagination
-from core.utils import send_notification_to_user
+from core.utils import send_notification_to_user, send_sms
 from message.permissions import IsAdminOrReadOnly
 from .models import GuardianMessageType, MessageType, Message
 from .serializers import GuardianMessageTypeBulkUpsertSerializer, GuardianMessageTypeSerializer, MessageTypeSerializer, MessageSerializer
@@ -91,7 +91,7 @@ class MessageViewSet(viewsets.ModelViewSet):
             is_emergency=is_emergency
         )
 
-        # Send Notification 
+        # Notify Guardian 
         title = f"رسالة جديدة من {dependent.user.name or dependent.user.phone_number}"
         body = message_text or "لديك رسالة جديدة"
         send_notification_to_user(
@@ -105,6 +105,13 @@ class MessageViewSet(viewsets.ModelViewSet):
             }
         )
 
+        # Send SMS if is_sms = True 
+        if is_sms and guardian.user.phone_number:
+            send_sms(
+                recipients=[guardian.user.phone_number],
+                body=body,
+                sender="Hajeen"
+            )
 
         serializer = self.get_serializer(message)
         return Response(
