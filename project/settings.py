@@ -6,6 +6,9 @@ from pathlib import Path
 from datetime import timedelta
 import os 
 from decouple import config 
+import firebase_admin
+from firebase_admin import credentials
+
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -36,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework_simplejwt',
+    'fcm_django',
     'django_filters',
     'rest_framework_simplejwt.token_blacklist',
     'multiselectfield',
@@ -183,3 +187,8 @@ AUTH_USER_MODEL = 'core.User'  # Custom user model
 
 # TAQNYAT API Key 
 TAQNYAT_API_KEY = "1cb7468728a9d8666e3e0789cfe94cb6"
+
+
+# Firebase Configuration 
+cred = credentials.Certificate("hajeen-1-firebase-adminsdk-fbsvc-867086a1ce.json")
+firebase_admin.initialize_app(cred)

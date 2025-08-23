@@ -8,6 +8,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from core.models import Dependent
 from core.pagination import DefaultPagination
+from core.utils import send_notification_to_user
 from message.permissions import IsAdminOrReadOnly
 from .models import GuardianMessageType, MessageType, Message
 from .serializers import GuardianMessageTypeBulkUpsertSerializer, GuardianMessageTypeSerializer, MessageTypeSerializer, MessageSerializer
@@ -44,25 +45,25 @@ class GuardianMessageTypeViewSet(viewsets.ModelViewSet):
 
 
 # Message ViewSet 
+
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
-    http_method_names = ['get', 'post']  
+    http_method_names = ['get', 'post']
 
     def create(self, request, *args, **kwargs):
         registration_id = request.data.get('registration_id')
         message_type_id = request.data.get('message_type_id')
         is_sms = request.data.get('is_sms', False)
         is_emergency = request.data.get('is_emergency', False)
+        message_text = request.data.get('message', '')
 
-        # registration_id is always required
         if not registration_id:
             return Response(
                 {"detail": _("registration_id is required.")},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Get dependent and guardian
         dependent = get_object_or_404(Dependent, registration_id=registration_id)
         guardian = dependent.guardian
 
@@ -81,7 +82,7 @@ class MessageViewSet(viewsets.ModelViewSet):
                 )
             message_type = get_object_or_404(GuardianMessageType, id=message_type_id)
 
-        # Create message
+        # Create Message 
         message = Message.objects.create(
             guardian=guardian,
             dependent=dependent,
@@ -90,9 +91,24 @@ class MessageViewSet(viewsets.ModelViewSet):
             is_emergency=is_emergency
         )
 
+        # Send Notification 
+        title = f"رسالة جديدة من {dependent.user.name or dependent.user.phone_number}"
+        body = message_text or "لديك رسالة جديدة"
+        send_notification_to_user(
+            user=guardian.user,
+            title=title,
+            message=body,
+            data={
+                "type": "new_message",
+                "message_id": str(message.id),
+                "dependent_id": str(dependent.id)
+            }
+        )
+
+
         serializer = self.get_serializer(message)
         return Response(
-            {"message": _('Message sent successfully'), "data": serializer.data},
+            {"message": _("Message sent successfully"), "data": serializer.data},
             status=status.HTTP_201_CREATED
         )
 

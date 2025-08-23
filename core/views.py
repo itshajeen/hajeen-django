@@ -1,5 +1,6 @@
 import random
 from datetime import date, timedelta
+from fcm_django.models import FCMDevice
 from django.utils.translation import gettext_lazy as _ 
 from django.utils import timezone
 from django.db.models import Count
@@ -456,3 +457,27 @@ class DashboardStatsView(APIView):
         }
 
         return Response(data)
+
+
+# Register FCM Device 
+class RegisterFCMDeviceViewSet(viewsets.ViewSet):
+    def create(self, request):
+        token = request.data.get("registration_id")
+        device_type = request.data.get("type", "android")  # android أو ios
+
+        if not token:
+            return Response({"detail": "registration_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        device, created = FCMDevice.objects.update_or_create(
+            registration_id=token,
+            defaults={
+                "user": request.user,
+                "type": device_type
+            }
+        )
+
+        return Response({
+            "detail": _("Device registered successfully"),
+            "created": created,
+            "device_id": device.id
+        }, status=status.HTTP_201_CREATED)

@@ -4,6 +4,7 @@ from django.core.validators import RegexValidator
 from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils.translation import gettext_lazy as _
+from message.models import Message
 from multiselectfield import MultiSelectField
 
 
@@ -164,3 +165,24 @@ class Dependent(models.Model):
 class AppSettings(models.Model):
     whatsapp_number = models.CharField(validators=[phone_regex], max_length=17, unique=True)  # max_length 17 for country code and number
     max_sms_message = models.IntegerField(default=1, verbose_name=_("Max SMS Messages"))
+
+
+# Notification Model 
+class Notification(models.Model):
+    TYPES = (
+        ('new_message', _('New Message')),
+        ('general', _('General')),
+    )
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    title = models.CharField(_("title"), max_length=255, null=True, blank=True)
+    message = models.CharField(_("message"), max_length=1024)
+    notification_type = models.CharField(_('type'), max_length=100, choices=TYPES, default='general')
+    read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.get_notification_type_display()} - {self.user}"
