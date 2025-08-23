@@ -1,7 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
-from core.models import Guardian, Dependent 
 import os
 from django.utils.text import slugify
 from uuid import uuid4
@@ -47,7 +46,7 @@ class MessageType(models.Model):
 
 # GuardianMessageType Model 
 class GuardianMessageType(models.Model):
-    guardian = models.ForeignKey(Guardian, on_delete=models.CASCADE, related_name="guardian_messages")
+    guardian = models.ForeignKey("core.Guardian", on_delete=models.CASCADE, related_name="guardian_messages")
     message_type = models.ForeignKey(MessageType, on_delete=models.CASCADE, related_name="guardian_messages")
 
     class Meta:
@@ -58,8 +57,8 @@ class GuardianMessageType(models.Model):
 
 # Message Model 
 class Message(models.Model):
-    guardian = models.ForeignKey(Guardian, on_delete=models.CASCADE, related_name='received_messages')
-    dependent = models.ForeignKey(Dependent, on_delete=models.CASCADE, related_name='sent_messages')
+    guardian = models.ForeignKey('core.Guardian', on_delete=models.CASCADE, related_name='received_messages')
+    dependent = models.ForeignKey('core.Dependent', on_delete=models.CASCADE, related_name='sent_messages')
     message_type = models.ForeignKey(GuardianMessageType, on_delete=models.CASCADE, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     is_seen = models.BooleanField(default=False)
