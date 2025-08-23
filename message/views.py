@@ -92,7 +92,7 @@ class MessageViewSet(viewsets.ModelViewSet):
         )
 
         # Notify Guardian 
-        title = f"رسالة جديدة من {dependent.user.name or dependent.user.phone_number}"
+        title = f"رسالة جديدة من {dependent.name}"
         body = message_text or "لديك رسالة جديدة"
         send_notification_to_user(
             user=guardian.user,
