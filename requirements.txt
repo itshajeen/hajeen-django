@@ -8,8 +8,10 @@ cryptography==44.0.2
 Django==5.1.7
 django-cors-headers==4.5.0
 django-filter==25.1
+django-multiselectfield==1.0.1
 djangorestframework==3.15.2
 djangorestframework_simplejwt==5.5.0
+fcm-django==2.3.1
 firebase-admin==6.7.0
 google-api-core==2.24.2
 google-api-python-client==2.167.0
@@ -23,9 +25,12 @@ google-resumable-media==2.7.2
 googleapis-common-protos==1.70.0
 grpcio==1.72.0rc1
 grpcio-status==1.72.0rc1
+gunicorn==23.0.0
 httplib2==0.22.0
 idna==3.10
 msgpack==1.1.0
+mysqlclient==2.2.7
+packaging==25.0
 pillow==11.1.0
 proto-plus==1.26.1
 protobuf==6.31.0rc1
@@ -34,6 +39,7 @@ pyasn1_modules==0.4.2
 pycparser==2.22
 PyJWT==2.9.0
 pyparsing==3.2.3
+python-decouple==3.8
 requests==2.32.3
 rsa==4.9.1
 sqlparse==0.5.3
@@ -41,8 +47,3 @@ swapper==1.4.0
 typing_extensions==4.13.0
 uritemplate==4.1.1
 urllib3==2.4.0
-python-decouple==3.8 
-mysqlclient
-gunicorn
-fcm-django 
-firebase-admin 
