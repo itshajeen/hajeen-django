@@ -1,4 +1,5 @@
 from datetime import timedelta
+from django.utils.timezone import make_aware
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import viewsets, status, filters 
@@ -138,20 +139,16 @@ class GuardianMessagesAPIView(APIView):
         guardian = user.guardian
         dependent_id = request.query_params.get('dependent_id')
 
-        # Get all messages for the guardian 
-        messages = guardian.received_messages.all().select_related('dependent', 'message_type')
+        messages = guardian.received_messages.all().select_related('dependent', 'message_type__message_type')
 
-        # Filter by dependent if provided 
         if dependent_id:
             messages = messages.filter(dependent_id=dependent_id)
 
         now = timezone.now()
         ten_minutes_ago = now - timedelta(minutes=10)
 
-        # New Message which send 10 mins ago 
-        # new_messages = messages.filter(created_at__gte=ten_minutes_ago).order_by('-created_at')
-        new_messages = messages.filter(is_seen=False).order_by('-created_at')
-        # Pervious nessage which send before 10 mins ago 
+        # Divide msgs into old and new 
+        new_messages = messages.filter(created_at__gte=ten_minutes_ago).order_by('-created_at')
         previous_messages = messages.filter(created_at__lt=ten_minutes_ago).order_by('-created_at')
 
         def serialize_message(msg):
@@ -172,7 +169,6 @@ class GuardianMessagesAPIView(APIView):
             "new": [serialize_message(m) for m in new_messages],
             "previous": [serialize_message(m) for m in previous_messages],
         })
-
 
 
 # MarkMessagesReadAPIView to mark messages as read 
