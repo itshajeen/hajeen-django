@@ -149,7 +149,8 @@ class GuardianMessagesAPIView(APIView):
         ten_minutes_ago = now - timedelta(minutes=10)
 
         # New Message which send 10 mins ago 
-        new_messages = messages.filter(created_at__gte=ten_minutes_ago).order_by('-created_at')
+        # new_messages = messages.filter(created_at__gte=ten_minutes_ago).order_by('-created_at')
+        new_messages = messages.filter(is_seen=False).order_by('-created_at')
         # Pervious nessage which send before 10 mins ago 
         previous_messages = messages.filter(created_at__lt=ten_minutes_ago).order_by('-created_at')
 
