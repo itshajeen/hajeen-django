@@ -48,10 +48,20 @@ class GuardianMessageTypeViewSet(viewsets.ModelViewSet):
 
 # Message ViewSet 
 
+# Message ViewSet
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
     http_method_names = ['get', 'post']
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        guardian = getattr(self.request.user, 'guardian', None)
+        if guardian:
+            return self.queryset.filter(guardian=guardian).select_related(
+                'dependent', 'message_type', 'message_type__message_type'
+            )
+        return self.queryset.none()
 
     def create(self, request, *args, **kwargs):
         registration_id = request.data.get('registration_id')
@@ -84,7 +94,6 @@ class MessageViewSet(viewsets.ModelViewSet):
                 )
             message_type = get_object_or_404(GuardianMessageType, id=message_type_id)
 
-        # Create Message 
         message = Message.objects.create(
             guardian=guardian,
             dependent=dependent,
@@ -93,7 +102,7 @@ class MessageViewSet(viewsets.ModelViewSet):
             is_emergency=is_emergency
         )
 
-        # Notify Guardian 
+        # Notify guardian
         title = f"رسالة جديدة من {dependent.name}"
         body = message_text or "لديك رسالة جديدة"
         send_notification_to_user(
@@ -107,7 +116,6 @@ class MessageViewSet(viewsets.ModelViewSet):
             }
         )
 
-        # Send SMS if is_sms = True 
         if is_sms and guardian.user.phone_number:
             send_sms(
                 recipients=[guardian.user.phone_number],
@@ -121,14 +129,7 @@ class MessageViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED
         )
 
-    def get_queryset(self):
-        guardian = getattr(self.request.user, 'guardian', None)
-        if guardian:
-            return self.queryset.filter(guardian=guardian)
-        return self.queryset.none()
-
-
-# GuardianMessagesAPIView to get messages for a guardian 
+# GuardianMessagesAPIView
 class GuardianMessagesAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -140,21 +141,18 @@ class GuardianMessagesAPIView(APIView):
         guardian = user.guardian
         dependent_id = request.query_params.get('dependent_id')
 
-        # جلب كل الرسائل مع ForeignKeys المطلوبة
-        messages = guardian.received_messages.all().select_related('dependent', 'message_type__message_type')
+        messages = guardian.received_messages.all().select_related(
+            'dependent', 'message_type', 'message_type__message_type'
+        )
 
         if dependent_id:
             messages = messages.filter(dependent_id=dependent_id)
 
-        # الوقت الحالي و 10 دقائق مضت
         now = timezone.now()
         ten_minutes_ago = now - timedelta(minutes=10)
-
-        # تحويل datetime لو لازم للتأكد من التوافق
         if is_naive(ten_minutes_ago):
             ten_minutes_ago = make_aware(ten_minutes_ago)
 
-        # تقسيم الرسائل
         new_messages = messages.filter(created_at__gte=ten_minutes_ago).order_by('-created_at')
         previous_messages = messages.filter(created_at__lt=ten_minutes_ago).order_by('-created_at')
 
@@ -176,7 +174,7 @@ class GuardianMessagesAPIView(APIView):
             "new": [serialize_message(m) for m in new_messages],
             "previous": [serialize_message(m) for m in previous_messages],
         })
-
+    
 
 # MarkMessagesReadAPIView to mark messages as read 
 class MarkMessagesReadAPIView(APIView):
