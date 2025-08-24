@@ -128,6 +128,8 @@ SIMPLE_JWT = {
 #     }
 # }
 
+
+# Databases 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
