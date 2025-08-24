@@ -1,7 +1,7 @@
 from django.urls import include, path 
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework.routers import DefaultRouter
-from .views import AppSettingsView, DashboardStatsView, DependentViewSet, DisabilityTypeViewSet, GuardianViewSet, PhoneLoginAPIView, PhonePasswordLoginAPIView, RegisterFCMDeviceViewSet, RequestGuardianPinResetView, ResetGuardianPinCodeView, SetGuardianPinCodeView, VerifyGuardianPinCodeView, VerifyOTPAPIView, UserProfileAPIView, DeleteAccountAPIView
+from .views import AppSettingsView, DashboardStatsView, DependentViewSet, DisabilityTypeViewSet, GuardianViewSet, PhoneLoginAPIView, PhonePasswordLoginAPIView, RequestGuardianPinResetView, ResetGuardianPinCodeView, SetGuardianPinCodeView, VerifyGuardianPinCodeView, VerifyOTPAPIView, UserProfileAPIView, DeleteAccountAPIView
 
 # Create a router and register our viewsets with it 
 router = DefaultRouter()
