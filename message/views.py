@@ -1,5 +1,6 @@
 from datetime import timedelta
-from django.utils.timezone import make_aware
+from django.utils import timezone
+from django.utils.timezone import is_naive, make_aware
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import viewsets, status, filters 
@@ -139,15 +140,21 @@ class GuardianMessagesAPIView(APIView):
         guardian = user.guardian
         dependent_id = request.query_params.get('dependent_id')
 
+        # جلب كل الرسائل مع ForeignKeys المطلوبة
         messages = guardian.received_messages.all().select_related('dependent', 'message_type__message_type')
 
         if dependent_id:
             messages = messages.filter(dependent_id=dependent_id)
 
+        # الوقت الحالي و 10 دقائق مضت
         now = timezone.now()
         ten_minutes_ago = now - timedelta(minutes=10)
 
-        # Divide msgs into old and new 
+        # تحويل datetime لو لازم للتأكد من التوافق
+        if is_naive(ten_minutes_ago):
+            ten_minutes_ago = make_aware(ten_minutes_ago)
+
+        # تقسيم الرسائل
         new_messages = messages.filter(created_at__gte=ten_minutes_ago).order_by('-created_at')
         previous_messages = messages.filter(created_at__lt=ten_minutes_ago).order_by('-created_at')
 
