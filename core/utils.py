@@ -1,6 +1,10 @@
 
 import requests
 from django.conf import settings 
+from fcm_django.models import FCMDevice
+from core.models import Notification
+from firebase_admin.messaging import Message as FCMMessage, Notification as FCM_Notification
+
 
 TAQNYAT_API_URL = "https://api.taqnyat.sa/v1/messages"
 API_KEY = settings.TAQNYAT_API_KEY 
@@ -36,15 +40,10 @@ def send_sms(recipients, body, sender, scheduled=None):
     except Exception:
         return {"success": False, "message": "Invalid Response from API"}
 
-# utils/notifications.py
 
-from fcm_django.models import FCMDevice
-from core.models import Notification
 
+# Create Notification 
 def create_notification(user, title, message, notification_type="general"):
-    """
-    إنشاء Notification object في قاعدة البيانات.
-    """
     notification = Notification.objects.create(
         user=user,
         title=title,
@@ -54,31 +53,8 @@ def create_notification(user, title, message, notification_type="general"):
     return notification
 
 
-
-# Send Fcm Notification 
-def send_fcm_notification(user, title, message, data=None):
-    devices = FCMDevice.objects.filter(user=user)
-    if not devices.exists():
-        return None
-
-    safe_data = {str(k): str(v) for k, v in (data or {}).items()}
-    if "notification_id" not in safe_data:
-        notification = create_notification(user, title, message, notification_type=safe_data.get("type", "general"))
-        safe_data["notification_id"] = str(notification.id)
-    else:
-        notification = None  
-
-    devices.send_message(
-        title=title,
-        body=message,
-        data=safe_data
-    )
-    return notification
-
-
 def send_notification_to_user(user, title, message, data=None):
-    notification_type = (data.get("type") if data else "general")
-    
+    notification_type = data.get("type") if data else "general"
     notification = create_notification(user, title, message, notification_type=notification_type)
 
     devices = FCMDevice.objects.filter(user=user)
@@ -86,10 +62,11 @@ def send_notification_to_user(user, title, message, data=None):
         safe_data = {str(k): str(v) for k, v in (data or {}).items()}
         safe_data["notification_id"] = str(notification.id)
 
-        devices.send_message(
-            title=title,
-            body=message,
-            data=safe_data
-        )
-
+        for device in devices:
+            device.send_message(
+                message=FCMMessage(
+                    notification=FCM_Notification(title=title, body=message),
+                    data=safe_data
+                )
+            )
     return notification

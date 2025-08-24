@@ -5,7 +5,6 @@ from .views import AppSettingsView, DashboardStatsView, DependentViewSet, Disabi
 
 # Create a router and register our viewsets with it 
 router = DefaultRouter()
-router.register('register-device', RegisterFCMDeviceViewSet, basename='register-device')
 router.register('guardians', GuardianViewSet, basename='guardians')
 router.register('disability-types', DisabilityTypeViewSet, basename='disability-types')
 router.register('dependents', DependentViewSet, basename='dependents') 

@@ -58,23 +58,38 @@ class PhonePasswordLoginAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# Verify OTP API View 
 class VerifyOTPAPIView(APIView):
     def post(self, request):
         phone_number = request.data.get('phone_number')
         otp = request.data.get('otp')
 
+        # get registration id from token 
+        registration_id = request.headers.get("token")
+        device_type = request.headers.get("Device-Type", "android")  # Optional 
+
+        if not phone_number or not otp:
+            return Response({'detail': _('phone_number and otp are required.')}, status=400)
+
         try:
             user = User.objects.get(phone_number=phone_number)
+            
             if user.otp == otp:
-                # Reset OTP if needed
+                # Set Otp 
                 user.otp = None
                 user.save()
 
-                # Generate tokens
+                # create JWT Token 
                 refresh = RefreshToken.for_user(user)
                 access_token = str(refresh.access_token)
                 refresh_token = str(refresh)
+
+                # update or create registration id 
+                if registration_id:
+                    FCMDevice.objects.update_or_create(
+                        user=user,
+                        registration_id=registration_id,
+                        defaults={"type": device_type}
+                    )
 
                 return Response({
                     'detail': _('Login successful.'),
@@ -82,11 +97,13 @@ class VerifyOTPAPIView(APIView):
                     'access_token': access_token,
                     'refresh_token': refresh_token
                 })
+
             else:
                 return Response({'detail': _('Invalid OTP.')}, status=400)
+
         except User.DoesNotExist:
             return Response({'detail': _('User not found.')}, status=404)
-        
+
 
 # User Profile API View 
 class UserProfileAPIView(APIView):
@@ -459,25 +476,3 @@ class DashboardStatsView(APIView):
         return Response(data)
 
 
-# Register FCM Device 
-class RegisterFCMDeviceViewSet(viewsets.ViewSet):
-    def create(self, request):
-        token = request.data.get("registration_id")
-        device_type = request.data.get("type", "android")  # android أو ios
-
-        if not token:
-            return Response({"detail": "registration_id is required"}, status=status.HTTP_400_BAD_REQUEST)
-
-        device, created = FCMDevice.objects.update_or_create(
-            registration_id=token,
-            defaults={
-                "user": request.user,
-                "type": device_type
-            }
-        )
-
-        return Response({
-            "detail": _("Device registered successfully"),
-            "created": created,
-            "device_id": device.id
-        }, status=status.HTTP_201_CREATED)
