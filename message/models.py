@@ -41,10 +41,10 @@ class MessageType(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.label
+        return self.label_en 
     
 
-# GuardianMessageType Model 
+# GuardianMessageTypModele  
 class GuardianMessageType(models.Model):
     guardian = models.ForeignKey("core.Guardian", on_delete=models.CASCADE, related_name="guardian_messages")
     message_type = models.ForeignKey(MessageType, on_delete=models.CASCADE, related_name="guardian_messages")

@@ -1,5 +1,6 @@
 from datetime import timedelta
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 from django.utils.timezone import is_naive, make_aware
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -47,6 +48,8 @@ class GuardianMessageTypeViewSet(viewsets.ModelViewSet):
 
 
 # Message ViewSet 
+
+
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
@@ -60,72 +63,68 @@ class MessageViewSet(viewsets.ModelViewSet):
                 'dependent', 'message_type', 'message_type__message_type'
             )
         return self.queryset.none()
-
+    
     def create(self, request, *args, **kwargs):
         registration_id = request.data.get('registration_id')
         message_type_id = request.data.get('message_type_id')
         is_sms = request.data.get('is_sms', False)
+        is_voice = request.data.get('is_voice', False)
         is_emergency = request.data.get('is_emergency', False)
-        message_text = request.data.get('message', '')
+        message_text = request.data.get('message', '').strip()
 
         if not registration_id:
-            return Response(
-                {"detail": _("registration_id is required.")},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"detail": _("registration_id is required.")}, status=status.HTTP_400_BAD_REQUEST)
 
         dependent = get_object_or_404(Dependent, registration_id=registration_id)
         guardian = dependent.guardian
 
+        if is_sms and is_voice:
+            return Response({"detail": _("A message cannot be both SMS and Voice.")}, status=status.HTTP_400_BAD_REQUEST)
+
         message_type = None
+
         if is_emergency:
             if message_type_id:
-                return Response(
-                    {"detail": _("Emergency messages should not have a message_type_id.")},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+                return Response({"detail": _("Emergency messages should not have a message_type_id.")}, status=status.HTTP_400_BAD_REQUEST)
         else:
             if not message_type_id:
-                return Response(
-                    {"detail": _("message_type_id is required for non-emergency messages.")},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            message_type = get_object_or_404(GuardianMessageType, id=message_type_id)
+                return Response({"detail": _("message_type_id is required for non-emergency messages.")}, status=status.HTTP_400_BAD_REQUEST)
+            
+            message_type = GuardianMessageType.objects.filter(id=message_type_id, guardian=guardian).first()
+            if not message_type:
+                return Response({"detail": _("This message_type does not belong to the guardian.")}, status=status.HTTP_400_BAD_REQUEST)
 
-        message = Message.objects.create(
+        # حفظ الرسالة مع full_clean لضمان validations الـ model
+        message = Message(
             guardian=guardian,
             dependent=dependent,
             message_type=message_type,
             is_sms=is_sms,
+            is_voice=is_voice,
             is_emergency=is_emergency
         )
+        try:
+            message.full_clean()
+            message.save()
+        except ValidationError as e:
+            return Response({"detail": e.messages}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Notify guardian
+        # إرسال الإشعار
         title = f"رسالة جديدة من {dependent.name}"
         body = message_text or "لديك رسالة جديدة"
         send_notification_to_user(
             user=guardian.user,
             title=title,
             message=body,
-            data={
-                "type": "new_message",
-                "message_id": str(message.id),
-                "dependent_id": str(dependent.id)
-            }
+            data={"type": "new_message", "message_id": str(message.id), "dependent_id": str(dependent.id)}
         )
 
         if is_sms and guardian.user.phone_number:
-            send_sms(
-                recipients=[guardian.user.phone_number],
-                body=body,
-                sender="Hajeen"
-            )
+            send_sms(recipients=[guardian.user.phone_number], body=body, sender="Hajeen")
 
         serializer = self.get_serializer(message)
-        return Response(
-            {"message": _("Message sent successfully"), "data": serializer.data},
-            status=status.HTTP_201_CREATED
-        )
+        return Response({"message": _("Message sent successfully"), "data": serializer.data}, status=status.HTTP_201_CREATED)
+
 
 # GuardianMessagesAPIView
 class GuardianMessagesAPIView(APIView):
