@@ -69,7 +69,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 # Guardian model
 class Guardian(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='guardian')
     guardian_code_hashed = models.CharField(max_length=255, null=True, blank=True)
     pin_reset_otp = models.CharField(max_length=6, null=True, blank=True)
     otp_created_at = models.DateTimeField(null=True, blank=True)
