@@ -293,7 +293,7 @@ class DependentSerializer(serializers.ModelSerializer):
         model = Dependent
         fields = [
             'id', 'name', 'disability_type', 'control_method', 'gender', 'date_birth',
-            'guardian', 'created_at', 'degree_type', 'marital_status', 'interest_field', 'last_messages', 'last_activity'
+            'guardian', 'created_at', 'degree_type', 'marital_status', 'interest_field', 'last_messages', 'last_activity', 'total_messages', 'sms_messages'
         ]
 
     def create(self, validated_data):
