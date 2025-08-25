@@ -121,25 +121,25 @@ SIMPLE_JWT = {
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
-
-
-# # Databases 
 # DATABASES = {
 #     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'myapp_db',
-#         'USER': 'myuser',
-#         'PASSWORD': 'haJ2en01#',
-#         'HOST': 'localhost',
-#         'PORT': '3306',
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
+
+
+# Databases 
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'myapp_db',
+        'USER': 'myuser',
+        'PASSWORD': 'haJ2en01#',
+        'HOST': 'localhost',
+        'PORT': '3306',
+    }
+}
 
 
 # Password validation
@@ -188,9 +188,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'core.User'  # Custom user model
 
 
-# TAQNYAT API Key 
+# Taqnyat Configuration
 TAQNYAT_API_KEY = "1cb7468728a9d8666e3e0789cfe94cb6"
-
+TAQNYAT_BASE_URL = 'https://api.taqnyat.sa'
 
 # Firebase Configuration 
 cred = credentials.Certificate("hajeen-1-firebase-adminsdk-fbsvc-867086a1ce.json")

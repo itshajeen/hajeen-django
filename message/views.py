@@ -11,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from core.models import Dependent
 from core.pagination import DefaultPagination
-from core.utils import send_notification_to_user, send_sms
+from core.utils import send_notification_to_user, TaqnyatSMSService
 from message.permissions import IsAdminOrReadOnly
 from .models import GuardianMessageType, MessageType, Message
 from .serializers import GuardianMessageTypeBulkUpsertSerializer, GuardianMessageTypeSerializer, MessageTypeSerializer, MessageSerializer
@@ -94,7 +94,6 @@ class MessageViewSet(viewsets.ModelViewSet):
             if not message_type:
                 return Response({"detail": _("This message_type does not belong to the guardian.")}, status=status.HTTP_400_BAD_REQUEST)
 
-        # حفظ الرسالة مع full_clean لضمان validations الـ model
         message = Message(
             guardian=guardian,
             dependent=dependent,
@@ -119,8 +118,14 @@ class MessageViewSet(viewsets.ModelViewSet):
             data={"type": "new_message", "message_id": str(message.id), "dependent_id": str(dependent.id)}
         )
 
+        # Send SMS if is_sms is True and guardian has a phone number
         if is_sms and guardian.user.phone_number:
-            send_sms(recipients=[guardian.user.phone_number], body=body, sender="Hajeen")
+            sms_service = TaqnyatSMSService()
+            sms_service.send_sms(
+                recipients=[guardian.user.phone_number],
+                message=body,
+                sender_name="Hajeen"
+            )
 
         serializer = self.get_serializer(message)
         return Response({"message": _("Message sent successfully"), "data": serializer.data}, status=status.HTTP_201_CREATED)

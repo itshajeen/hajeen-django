@@ -16,7 +16,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.decorators import action
 from core.pagination import DefaultPagination
 from core.permissions import IsAdminOrReadOnly, IsGuardianOwnDependent
-from core.utils import send_sms
+from core.utils import TaqnyatSMSService
 from message.models import GuardianMessageType, Message, MessageType 
 from .models import AppSettings, Dependent, DisabilityType, Guardian, User 
 from .serializers import AppSettingsSerializer, DependentSerializer, DisabilityTypeSerializer, GuardianSerializer, PhoneLoginSerializer, PhonePasswordLoginSerializer, SetGuardianPinCodeSerializer, UserProfileSerializer, UserProfileUpdateSerializer
@@ -162,11 +162,12 @@ class RequestGuardianPinResetView(APIView):
         guardian.otp_created_at = timezone.now()
         guardian.save()
 
-        # Send SMS
-        send_sms(
+        # Send SMS via Taqnyat
+        sms_service = TaqnyatSMSService()
+        sms_service.send_sms(
             recipients=[user.phone_number],
-            body=f"رمز التحقق لتغيير الكود السري هو: {otp}",
-            sender="Hajeen"
+            message=f"رمز التحقق لتغيير الكود السري هو: {otp}",
+            sender_name="Hajeen"
         )
         return Response({'detail': _('Verification code has been sent to your phone number successfully.'), 'otp': guardian.pin_reset_otp }, status=200)
 
@@ -239,7 +240,7 @@ class VerifyGuardianPinCodeView(APIView):
             'is_verified': True
         }, status=200)
     
-    
+
 # Guardian Viewset 
 class GuardianViewSet(viewsets.ModelViewSet):
     queryset = Guardian.objects.select_related('user').all()

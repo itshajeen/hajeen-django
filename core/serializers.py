@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 from message.serializers import MessageMiniSerializer
 from .models import  AppSettings, DisabilityType, Guardian, Dependent, User 
-from .utils import send_sms
+from .utils import TaqnyatSMSService 
 import random
 
 
@@ -35,12 +35,15 @@ class PhoneLoginSerializer(serializers.Serializer):
         # For development/testing purposes, print the OTP to console 
         print(f"OTP for {user.phone_number} is {otp}")
 
-        # send OTP via SMS TAQNYAT API 
-        send_sms(
+        # Send OTP via SMS using Taqnyat
+        sms_service = TaqnyatSMSService()
+        sms_service.send_sms(
             recipients=[user.phone_number],
-            body=f"رمز التحقق الخاص بك هو: {otp}",
-            sender="Hajeen"
+            message=f"رمز التحقق الخاص بك هو: {otp}",
+            sender_name="Hajeen"
         )
+
+
         attrs['user'] = user
         return attrs
     

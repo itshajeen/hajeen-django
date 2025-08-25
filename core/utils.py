@@ -1,5 +1,6 @@
 
 import requests
+import logging
 from django.conf import settings 
 from fcm_django.models import FCMDevice
 from core.models import Notification
@@ -8,70 +9,120 @@ from firebase_admin.messaging import Message as FCMMessage, Notification as FCM_
 from message.models import Message
 
 
-TAQNYAT_API_URL = "https://api.taqnyat.sa/v1/messages"
-API_KEY = settings.TAQNYAT_API_KEY 
+logger = logging.getLogger(__name__)
 
-def send_sms(recipients, body, sender, scheduled_datetime=None):
-    """
-    Send an SMS message via Taqnyat API.
+# Taqnyat SMS Service 
+class TaqnyatSMSService:
+    def __init__(self):
+        self.api_key = settings.TAQNYAT_API_KEY
+        self.base_url = settings.TAQNYAT_BASE_URL
+        self.headers = {
+            'Authorization': f'Bearer {self.api_key}',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
     
-    :param recipients: List of phone numbers (list of strings)
-    :param body: Message text (string)
-    :param sender: Approved sender name (string)
-    :param scheduled_datetime: Scheduled send datetime as ISO 8601 string (optional)
-    :return: API response (dict)
-    """
-    headers = {
-        "Authorization": f"Bearer {API_KEY}",
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-    }
+    def send_sms(self, recipients, message, sender_name="SMS"):
+        try:
+            # Ensure recipients is a list 
+            if isinstance(recipients, str):
+                recipients = [recipients]
+            
+            # Format phone numbers to include country code if missing 
+            formatted_recipients = []
+            for recipient in recipients:
+                if not recipient.startswith('+'):
+                    if recipient.startswith('966'):
+                        recipient = f'+{recipient}'
+                    elif recipient.startswith('05'):
+                        recipient = f'+966{recipient[1:]}'
+                    else:
+                        recipient = f'+966{recipient}'
+                formatted_recipients.append(recipient)
+            
+            payload = {
+                'recipients': formatted_recipients,
+                'body': message,
+                'sender': sender_name
+            }
+            
+            logger.info(f"Sending SMS to {formatted_recipients}: {message}")
+            
+            response = requests.post(
+                f'{self.base_url}/v1/messages',
+                json=payload,
+                headers=self.headers,
+                timeout=30
+            )
+            
+            response_data = response.json()
+            
+            if response.status_code == 200:
+                logger.info(f"SMS sent successfully: {response_data}")
+                return {
+                    'success': True,
+                    'message': 'تم إرسال الرسالة بنجاح',
+                    'data': response_data,
+                    'message_id': response_data.get('messageId'),
+                    'cost': response_data.get('cost')
+                }
+            else:
+                logger.error(f"SMS sending failed: {response_data}")
+                return {
+                    'success': False,
+                    'message': 'فشل في إرسال الرسالة',
+                    'error': response_data.get('message', 'خطأ غير معروف'),
+                    'status_code': response.status_code
+                }
+                
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request error: {str(e)}")
+            return {
+                'success': False,
+                'message': 'خطأ في الاتصال بخدمة الرسائل',
+                'error': str(e)
+            }
+        except Exception as e:
+            logger.error(f"Unexpected error: {str(e)}")
+            return {
+                'success': False,
+                'message': 'حدث خطأ غير متوقع',
+                'error': str(e)
+            }
+    
+    
+    def get_message_status(self, message_id):
+        try:
+            response = requests.get(
+                f'{self.base_url}/v1/messages/{message_id}',
+                headers=self.headers,
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                status_data = response.json()
+                return {
+                    'success': True,
+                    'status': status_data.get('status'),
+                    'data': status_data
+                }
+            else:
+                return {
+                    'success': False,
+                    'message': 'فشل في استعلام حالة الرسالة',
+                    'error': response.text
+                }
+                
+        except Exception as e:
+            logger.error(f"Message status check error: {str(e)}")
+            return {
+                'success': False,
+                'message': 'خطأ في استعلام حالة الرسالة',
+                'error': str(e)
+            }
 
-    payload = {
-        "recipients": recipients,
-        "body": body,
-        "sender": sender
-    }
-    if scheduled_datetime:
-        payload["scheduledDatetime"] = scheduled_datetime 
 
-    response = requests.post(TAQNYAT_API_URL, headers=headers, json=payload)
-    try:
-        return response.json()
-    except Exception:
-        return {"success": False, "message": "Invalid Response from API"}
-
-
-# # Create Notification 
-# def create_notification(user, title, message, notification_type="general"):
-#     notification = Notification.objects.create(
-#         user=user,
-#         title=title,
-#         message=message,
-#         notification_type=notification_type
-#     )
-#     return notification
-
-
-# def send_notification_to_user(user, title, message, data=None):
-#     notification_type = data.get("type") if data else "general"
-#     notification = create_notification(user, title, message, notification_type=notification_type)
-
-#     devices = FCMDevice.objects.filter(user=user)
-#     if devices.exists():
-#         safe_data = {str(k): str(v) for k, v in (data or {}).items()}
-#         safe_data["notification_id"] = str(notification.id)
-
-#         for device in devices:
-#             device.send_message(
-#                 message=FCMMessage(
-#                     notification=FCM_Notification(title=title, body=message),
-#                     data=safe_data
-#                 )
-#             )
-#     return notification
-
-
+# Notification Functions 
 def create_and_send_notification(user, title, message, data_message, notification_type, data_id):
     """
     Create and send a notification to the specified user.
@@ -99,19 +150,20 @@ def create_and_send_notification(user, title, message, data_message, notificatio
         safe_data_message = {str(k): str(v) for k, v in data_message.items()}
         safe_data_message["notification_id"] = str(notification.id)
         
-        devices.send_message(
-            Message(
-                notification=FCM_Notification(
-                    title=title,
-                    body=message,
-                ),
-                data=safe_data_message
-            )
+    devices.send_message(
+        FCMMessage(
+            notification=FCM_Notification(
+                title=title,
+                body=message,
+            ),
+            data=safe_data_message
         )
+    )
 
     return notification
 
 
+# Helper to send notification to user 
 def send_notification_to_user(user, title, body, data=None):
     """
     Send notification to a user
