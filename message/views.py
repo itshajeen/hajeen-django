@@ -109,13 +109,13 @@ class MessageViewSet(viewsets.ModelViewSet):
         except ValidationError as e:
             return Response({"detail": e.messages}, status=status.HTTP_400_BAD_REQUEST)
 
-        # إرسال الإشعار
+        # Send Notification to Guardian
         title = f"رسالة جديدة من {dependent.name}"
         body = message_text or "لديك رسالة جديدة"
         send_notification_to_user(
             user=guardian.user,
             title=title,
-            message=body,
+            body=body,
             data={"type": "new_message", "message_id": str(message.id), "dependent_id": str(dependent.id)}
         )
 

@@ -171,19 +171,20 @@ class AppSettings(models.Model):
 # Notification Model 
 class Notification(models.Model):
     TYPES = (
-        ('new_message', _('New Message')),
         ('general', _('General')),
+        ('new_message', _('New Message')),
     )
-
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
-    title = models.CharField(_("title"), max_length=255, null=True, blank=True)
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications', null=True, blank=True)
+    dependent_msg = models.ForeignKey(Message, on_delete=models.CASCADE, null=True, blank=True)
     message = models.CharField(_("message"), max_length=1024)
-    notification_type = models.CharField(_('type'), max_length=100, choices=TYPES, default='general')
-    read = models.BooleanField(default=False)
+    notification_type = models.CharField(_('type'), max_length=100, choices=TYPES, null=True, blank=True)
+    title = models.CharField(_("title"), max_length=255, null=True, blank=True)
+    read = models.BooleanField(_('read'), default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-
+    
     class Meta:
         ordering = ['-created_at']
-
-    def __str__(self):
+    
+    def _str_(self):
         return f"{self.get_notification_type_display()} - {self.user}"

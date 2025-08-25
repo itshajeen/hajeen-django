@@ -239,6 +239,7 @@ class VerifyGuardianPinCodeView(APIView):
             'is_verified': True
         }, status=200)
     
+    
 # Guardian Viewset 
 class GuardianViewSet(viewsets.ModelViewSet):
     queryset = Guardian.objects.select_related('user').all()

@@ -137,10 +137,23 @@ class MessageSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         response = super().to_representation(instance)
-        if instance.message_type:
-            response['message_type'] = GuardianMessageTypeSerializer(instance.message_type).data
+
+        if instance.is_emergency:
+            response['message_type'] = {
+                "label_en": "🚨 Emergency Message",
+                "label_ar": "🚨 رسالة طارئة"
+            }
         else:
-            response['message_type'] = None
+            if instance.message_type:
+                message_type_data = GuardianMessageTypeSerializer(instance.message_type).data
+                response['message_type'] = {
+                    "id": message_type_data.get("id"),
+                    "label_en": message_type_data.get("label_en"),
+                    "label_ar": message_type_data.get("label_ar"),
+                }
+            else:
+                response['message_type'] = None
+
         return response
     
 

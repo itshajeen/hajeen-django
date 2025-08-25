@@ -70,8 +70,6 @@ class Message(models.Model):
     def clean(self):
         if not self.is_emergency and not self.message_type:
             raise ValidationError("message_type is required for non-emergency messages.")
-        if self.is_emergency and self.message_type:
-            raise ValidationError("Emergency messages should not have a message_type.")
 
     def __str__(self):
         return f"{self.guardian} -> {self.dependent}: {self.message_type} ({self.created_at})"
