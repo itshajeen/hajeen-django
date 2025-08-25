@@ -64,8 +64,8 @@ class VerifyOTPAPIView(APIView):
         otp = request.data.get('otp')
 
         # get registration id from token 
-        registration_id = request.headers.get("token")
-        device_type = request.headers.get("Device-Type", "android")  # Optional 
+        registration_id = request.headers.get("X-Client-Fcm-Token")
+        device_type = request.headers.get("Device-Type", "ios")  # Optional 
 
         if not phone_number or not otp:
             return Response({'detail': _('phone_number and otp are required.')}, status=400)
@@ -212,18 +212,32 @@ class VerifyGuardianPinCodeView(APIView):
         user = request.user
         if user.role != 'guardian':
             return Response({'detail': _('Only guardians can verify pin code.')}, status=403)
+        
         try:
             guardian = Guardian.objects.get(user=user)
         except Guardian.DoesNotExist:
-            return Response({'detail': 'Guardian not found.'}, status=404)
+            return Response({'detail': _('Guardian not found.')}, status=404)
         
         pin_code = request.data.get('pin_code')
         if not pin_code or not guardian.check_code(pin_code):
-            return Response({'detail': _('Invalid PIN code.'), 'is_verified' : False}, status=400)
-        
+            return Response({'detail': _('Invalid PIN code.'), 'is_verified': False}, status=400)
+
+        # get registration id from headers  
+        registration_id = request.headers.get("X-Client-Fcm-Token")
+        device_type = request.headers.get("Device-Type", "ios") # Default to ios 
+
+        if registration_id:
+            FCMDevice.objects.update_or_create(
+                user=user,
+                registration_id=registration_id,
+                defaults={"type": device_type}
+            )
+
         # If pin_code is valid, return success response
-        return Response({'detail': _('PIN code verified successfully.'), 'is_verified' : True }, status=200)
-    
+        return Response({
+            'detail': _('PIN code verified successfully.'),
+            'is_verified': True
+        }, status=200)
     
 # Guardian Viewset 
 class GuardianViewSet(viewsets.ModelViewSet):
