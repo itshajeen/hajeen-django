@@ -286,6 +286,8 @@ class DependentSerializer(serializers.ModelSerializer):
     # last messages for the dependent 
     last_messages = serializers.SerializerMethodField(read_only=True)  
     last_activity = serializers.SerializerMethodField(read_only=True)  
+    total_messages = serializers.SerializerMethodField(read_only=True)  
+    sms_messages = serializers.SerializerMethodField(read_only=True)    
 
     class Meta:
         model = Dependent
@@ -332,6 +334,12 @@ class DependentSerializer(serializers.ModelSerializer):
                 "type": last_message.message_type.message_type.label_en if last_message.message_type else None,
             }
         return None
+
+    def get_total_messages(self, obj):
+        return obj.sent_messages.count()
+
+    def get_sms_messages(self, obj):
+        return obj.sent_messages.filter(is_sms=True).count()
 
 
     def to_representation(self, instance):
