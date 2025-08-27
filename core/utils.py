@@ -155,12 +155,11 @@ def create_and_send_notification(user, title, message, data_message, notificatio
         # Decide sound type based on is_voice flag in payload
         sound_type = "default" if safe_data_message.get("is_voice") == "True" else None
 
-        # Build and send FCM notification
         devices.send_message(
             FCMMessage(
                 notification=FCM_Notification(
                     title=title,
-                    body=body,
+                    body=message,  # Fixed here
                 ),
                 android=AndroidConfig(
                     notification={'sound': 'default'}  # Android sound
