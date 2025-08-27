@@ -4,9 +4,7 @@ import logging
 from django.conf import settings 
 from fcm_django.models import FCMDevice
 from core.models import Notification
-from firebase_admin.messaging import Message as FCMMessage, Notification as FCM_Notification, from firebase_admin.messaging import Message as FCMMessage, Notification as FCM_Notification, AndroidConfig, APNSConfig, APNSPayload, Aps
-
-
+from firebase_admin.messaging import Message as FCMMessage, Notification as FCM_Notification, AndroidConfig, APNSConfig, APNSPayload, Aps
 from message.models import Message
 
 
