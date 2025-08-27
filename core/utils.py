@@ -122,24 +122,27 @@ class TaqnyatSMSService:
             }
 
 
-# Notification Functions 
+# ---------------------------
 def create_and_send_notification(user, title, message, data_message, notification_type, data_id):
     """
     Create and send a notification to the specified user.
+    If is_voice=True in data_message, notification will include sound.
     """
-    order = None
+    # Ensure dependent_msg is always defined
+    dependent_msg = None
     if data_id:
         try:
             dependent_msg = Message.objects.get(id=data_id)
         except Message.DoesNotExist:
             pass  
 
+    # Create notification in DB
     notification = Notification.objects.create(
         user=user,
         notification_type=notification_type,
         read=False,
         message=message,
-        dependent_msg=dependent_msg if data_id else None, 
+        dependent_msg=dependent_msg, 
         title=title
     )
 
@@ -149,21 +152,30 @@ def create_and_send_notification(user, title, message, data_message, notificatio
         # Ensure all keys and values in data_message are strings
         safe_data_message = {str(k): str(v) for k, v in data_message.items()}
         safe_data_message["notification_id"] = str(notification.id)
-        
-    devices.send_message(
-        FCMMessage(
-            notification=FCM_Notification(
-                title=title,
-                body=message,
-            ),
-            data=safe_data_message
+
+        # Decide sound type based on is_voice flag in payload
+        sound_type = "default" if safe_data_message.get("is_voice") == "True" else None
+
+        # Build and send FCM notification
+        devices.send_message(
+            FCMMessage(
+                notification=FCM_Notification(
+                    title=title,
+                    body=message,
+                    sound=sound_type
+                ),
+                data=safe_data_message
+            )
         )
-    )
+    else:
+        logger.info(f"No FCM devices found for user {user.id}. Notification saved but not sent.")
 
     return notification
 
 
-# Helper to send notification to user 
+# ---------------------------
+# Helper to send notification 
+# ---------------------------
 def send_notification_to_user(user, title, body, data=None):
     """
     Send notification to a user
@@ -172,18 +184,12 @@ def send_notification_to_user(user, title, body, data=None):
         user: User model instance
         title: Notification title
         body: Notification body
-        data: Additional data payload
+        data: Additional data payload (must include 'is_voice' if needed)
     """
-    # Create data message dictionary
     data_message = data or {}
-    
-    # Get the order ID from data if it exists
     data_id = data.get("message_id") if data else None
-    
-    # Set notification type based on data
     notification_type = data.get("type", "general") if data else "general"
     
-    # Send notification
     return create_and_send_notification(
         user=user,
         title=title,
