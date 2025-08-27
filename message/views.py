@@ -109,7 +109,12 @@ class MessageViewSet(viewsets.ModelViewSet):
             return Response({"detail": e.messages}, status=status.HTTP_400_BAD_REQUEST)
 
         # Send Notification to Guardian
-        title = f"رسالة جديدة من {dependent.name}"
+        if message.is_emergency:
+            title = f"رسالة طارئة من {dependent.name}"
+        elif message_type and message_type.message_type:
+            title = f"{message_type.message_type.label_ar} من {dependent.name}"
+        else:
+            title = f"رسالة جديدة من {dependent.name}"
         body = message_text or "لديك رسالة جديدة"
         send_notification_to_user(
             user=guardian.user,
