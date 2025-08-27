@@ -4,7 +4,8 @@ import logging
 from django.conf import settings 
 from fcm_django.models import FCMDevice
 from core.models import Notification
-from firebase_admin.messaging import Message as FCMMessage, Notification as FCM_Notification
+from firebase_admin.messaging import Message as FCMMessage, Notification as FCM_Notification, from firebase_admin.messaging import Message as FCMMessage, Notification as FCM_Notification, AndroidConfig, APNSConfig, APNSPayload, Aps
+
 
 from message.models import Message
 
@@ -161,8 +162,13 @@ def create_and_send_notification(user, title, message, data_message, notificatio
             FCMMessage(
                 notification=FCM_Notification(
                     title=title,
-                    body=message,
-                    sound=sound_type
+                    body=body,
+                ),
+                android=AndroidConfig(
+                    notification={'sound': 'default'}  # Android sound
+                ),
+                apns=APNSConfig(
+                    payload=APNSPayload(aps=Aps(sound='default'))  # iOS sound
                 ),
                 data=safe_data_message
             )
