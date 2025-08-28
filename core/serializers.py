@@ -9,7 +9,6 @@ from .models import  AppSettings, DisabilityType, Guardian, Dependent, User
 from .utils import TaqnyatSMSService 
 import random
 
-
 # Phone Login Serializer 
 class PhoneLoginSerializer(serializers.Serializer):
     phone_number = serializers.CharField()
@@ -38,16 +37,15 @@ class PhoneLoginSerializer(serializers.Serializer):
 
         # Send OTP via SMS using Taqnyat
         sms_service = TaqnyatSMSService()
-        sms_service.send_sms(
+        sms_response = sms_service.send_sms(
             recipients=[user.phone_number],
             message=f"رمز التحقق الخاص بك هو: {otp}",
             sender_name=settings.TAQNYAT_SENDER_NAME
         )
-
+        print(f"SMS Response: {sms_response}")
 
         attrs['user'] = user
         return attrs
-    
 
 # Phone Password Login Serializer
 class PhonePasswordLoginSerializer(serializers.Serializer):
