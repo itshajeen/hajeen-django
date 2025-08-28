@@ -116,7 +116,7 @@ class MessageViewSet(viewsets.ModelViewSet):
             title = f"{message_type.message_type.label_ar} من {dependent.name}"
         else:
             title = f"رسالة جديدة من {dependent.name}"
-        body = message_text or "لديك رسالة جديدة"
+            body = f"{message_text}\nمن: {dependent.name}\nتطبيق هجين"
         send_notification_to_user(
             user=guardian.user,
             title=title,
