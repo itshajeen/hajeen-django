@@ -140,8 +140,8 @@ class MessageSerializer(serializers.ModelSerializer):
 
         if instance.is_emergency:
             response['message_type'] = {
-                "label_en": "🚨 Emergency Message",
-                "label_ar": "🚨 رسالة طارئة"
+                "label_en": "🚨 رسالة طوارئ",
+                "label_ar": "🚨 رسالة طوارئ"
             }
         else:
             if instance.message_type:
