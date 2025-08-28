@@ -49,8 +49,6 @@ class GuardianMessageTypeViewSet(viewsets.ModelViewSet):
 
 
 # Message ViewSet 
-
-
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
@@ -110,19 +108,19 @@ class MessageViewSet(viewsets.ModelViewSet):
         
         if message.is_emergency:
             title = f"رسالة طارئة من {dependent.name}"
-            body = f"رسالة طارئة من {dependent.name}"
+            notification_body = f"رسالة طارئة من {dependent.name}"
+
         elif message_type and message_type.message_type:
             title = f"{message_type.message_type.label_ar} من {dependent.name}"
-            body = f"{message_type.message_type.label_ar} \n من {dependent.name} \n تطبيق هجين"
+            notification_body = f"{message_type.message_type.label_ar} \n من {dependent.name} \n تطبيق هجين"
         else:
             title = f"رسالة جديدة من {dependent.name}"
-            body = f"رسالة جديدة من {dependent.name}"
+            notification_body = f"رسالة جديدة من {dependent.name}"
 
-        # إرسال الإشعار للمستخدم
         send_notification_to_user(
             user=guardian.user,
             title=title,
-            body=body,
+            body=notification_body,
             data={"type": "new_message", "message_id": str(message.id), "dependent_id": str(dependent.id)}
         )
 
@@ -130,7 +128,7 @@ class MessageViewSet(viewsets.ModelViewSet):
             sms_service = TaqnyatSMSService()
             sms_service.send_sms(
                 recipients=[guardian.user.phone_number],
-                message=body,
+                message=f"{message_type.message_type.label_ar if message_type else 'لديك رسالة جديدة'} \n من {dependent.name} \n تطبيق هجين \n \n شركة رزان عدنان المليك للتجارة ",
                 sender_name=settings.TAQNYAT_SENDER_NAME 
             )
 
