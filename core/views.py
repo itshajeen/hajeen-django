@@ -168,7 +168,7 @@ class RequestGuardianPinResetView(APIView):
         sms_service = TaqnyatSMSService()
         sms_service.send_sms(
             recipients=[user.phone_number],
-            message=f"رمز التحقق لتغيير الكود السري هو: {otp} \n للدخول لتطبيق هجين \n \n شركة رزان عدنان المليك للتجارة",
+            message = f"عزيزنا العميل،\nرمز التحقق لتغيير الكود السري الخاص بمنصة شركة رزان عدنان المليك للتجارة هو {otp}", 
             sender_name=settings.TAQNYAT_SENDER_NAME 
         )
         return Response({'detail': _('Verification code has been sent to your phone number successfully.'), 'otp': guardian.pin_reset_otp }, status=200)

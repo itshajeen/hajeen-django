@@ -39,7 +39,7 @@ class PhoneLoginSerializer(serializers.Serializer):
         sms_service = TaqnyatSMSService()
         sms_response = sms_service.send_sms(
             recipients=[user.phone_number],
-            message=f"رمز التحقق الخاص بك هو: {otp} \n للدخول لتطبيق هجين \n \n شركة رزان عدنان المليك للتجارة",
+            message = f"عزيزنا العميل،\nكود التحقق الخاص بكم للدخول الى منصة شركة رزان عدنان المليك للتجارة هو {otp}",
             sender_name=settings.TAQNYAT_SENDER_NAME
         )
         print(f"SMS Response: {sms_response}")

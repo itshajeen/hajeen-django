@@ -128,7 +128,7 @@ class MessageViewSet(viewsets.ModelViewSet):
             sms_service = TaqnyatSMSService()
             sms_service.send_sms(
                 recipients=[guardian.user.phone_number],
-                message=f"{message_type.message_type.label_ar if message_type else 'لديك رسالة جديدة'} \n من {dependent.name} \n تطبيق هجين \n \n شركة رزان عدنان المليك للتجارة ",
+                message=f"{message_type.message_type.label_ar if message_type else 'لديك رسالة جديدة'} \n من {dependent.name} \n \n شركة رزان عدنان المليك للتجارة ",
                 sender_name=settings.TAQNYAT_SENDER_NAME 
             )
 
