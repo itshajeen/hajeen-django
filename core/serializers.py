@@ -27,25 +27,29 @@ class PhoneLoginSerializer(serializers.Serializer):
         # Check if user is blocked 
         if user.is_block :
             raise serializers.ValidationError({"detail": _('User account is blocked.')}) 
-        
-        # Generate 4-digit OTP
-        otp = str(random.randint(1000, 9999))
+
+        # OTP ثابت لرقم معين
+        if phone_number == "507177774":  
+            otp = "2252"
+        else:
+            otp = str(random.randint(1000, 9999))
+
         user.otp = otp
         user.save()
-        # For development/testing purposes, print the OTP to console 
         print(f"OTP for {user.phone_number} is {otp}")
 
-        # Send OTP via SMS using Taqnyat
+        # Send OTP via SMS
         sms_service = TaqnyatSMSService()
         sms_response = sms_service.send_sms(
             recipients=[user.phone_number],
-            message = f"عزيزنا العميل،\nكود التحقق الخاص بكم للدخول الى منصة شركة رزان عدنان المليك للتجارة هو {otp}",
+            message=f"عزيزنا العميل،\nكود التحقق الخاص بكم للدخول الى منصة شركة رزان عدنان المليك للتجارة هو {otp}",
             sender_name=settings.TAQNYAT_SENDER_NAME
         )
         print(f"SMS Response: {sms_response}")
 
         attrs['user'] = user
         return attrs
+
 
 # Phone Password Login Serializer
 class PhonePasswordLoginSerializer(serializers.Serializer):
