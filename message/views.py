@@ -71,7 +71,6 @@ class MessageViewSet(viewsets.ModelViewSet):
         is_sms = request.data.get('is_sms', False)
         is_voice = request.data.get('is_voice', False)
         is_emergency = request.data.get('is_emergency', False)
-        message_text = request.data.get('message', '').strip()
 
         if not registration_id:
             return Response({"detail": _("registration_id is required.")}, status=status.HTTP_400_BAD_REQUEST)
@@ -108,15 +107,18 @@ class MessageViewSet(viewsets.ModelViewSet):
             message.save()
         except ValidationError as e:
             return Response({"detail": e.messages}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Send Notification to Guardian
+        
         if message.is_emergency:
             title = f"رسالة طارئة من {dependent.name}"
+            body = f"رسالة طارئة من {dependent.name}"
         elif message_type and message_type.message_type:
             title = f"{message_type.message_type.label_ar} من {dependent.name}"
+            body = f"{message_type.message_type.label_ar} \n من {dependent.name} \n تطبيق هجين"
         else:
             title = f"رسالة جديدة من {dependent.name}"
-            body = f"{message_text}\nمن: {dependent.name}\nتطبيق هجين"
+            body = f"رسالة جديدة من {dependent.name}"
+
+        # إرسال الإشعار للمستخدم
         send_notification_to_user(
             user=guardian.user,
             title=title,
@@ -124,7 +126,6 @@ class MessageViewSet(viewsets.ModelViewSet):
             data={"type": "new_message", "message_id": str(message.id), "dependent_id": str(dependent.id)}
         )
 
-        # Send SMS if is_sms is True and guardian has a phone number
         if is_sms and guardian.user.phone_number:
             sms_service = TaqnyatSMSService()
             sms_service.send_sms(
