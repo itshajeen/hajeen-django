@@ -165,7 +165,7 @@ class GuardianMessagesAPIView(APIView):
 
         def serialize_message(msg):
             if msg.is_emergency:
-                label = _("Emergency Message")
+                label = _("رسالة طوارئ ‼️")
             elif msg.message_type:
                 label = msg.message_type.message_type.label_ar
             else:

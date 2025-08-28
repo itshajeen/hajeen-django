@@ -140,8 +140,8 @@ class MessageSerializer(serializers.ModelSerializer):
 
         if instance.is_emergency:
             response['message_type'] = {
-                "label_en": "🚨 رسالة طوارئ",
-                "label_ar": "🚨 رسالة طوارئ"
+                "label_en": "‼️ رسالة طوارئ",
+                "label_ar": "‼️ رسالة طوارئ"
             }
         else:
             if instance.message_type:
@@ -168,7 +168,7 @@ class MessageMiniSerializer(serializers.ModelSerializer):
 
     def get_message_type(self, obj):
         if obj.is_emergency:
-            return _("رسالة طوارئ")  
+            return _("رسالة طوارئ ‼️")  
         if obj.message_type and obj.message_type.message_type:
             return obj.message_type.message_type.label_ar
         return _("غير معروف")  
