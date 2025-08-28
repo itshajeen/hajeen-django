@@ -1,4 +1,5 @@
 from datetime import timedelta
+from django.conf import settings
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.utils.timezone import is_naive, make_aware
@@ -129,7 +130,7 @@ class MessageViewSet(viewsets.ModelViewSet):
             sms_service.send_sms(
                 recipients=[guardian.user.phone_number],
                 message=body,
-                sender_name="Hajeen"
+                sender_name=settings.TAQNYAT_SENDER_NAME 
             )
 
         serializer = self.get_serializer(message)

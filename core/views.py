@@ -1,5 +1,7 @@
 import random
 from datetime import date, timedelta
+
+from django.conf import settings
 from fcm_django.models import FCMDevice
 from django.utils.translation import gettext_lazy as _ 
 from django.utils import timezone
@@ -167,7 +169,7 @@ class RequestGuardianPinResetView(APIView):
         sms_service.send_sms(
             recipients=[user.phone_number],
             message=f"رمز التحقق لتغيير الكود السري هو: {otp}",
-            sender_name="Hajeen"
+            sender_name=settings.TAQNYAT_SENDER_NAME 
         )
         return Response({'detail': _('Verification code has been sent to your phone number successfully.'), 'otp': guardian.pin_reset_otp }, status=200)
 

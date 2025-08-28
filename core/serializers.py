@@ -4,6 +4,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from message.serializers import MessageMiniSerializer
+from django.conf import settings
 from .models import  AppSettings, DisabilityType, Guardian, Dependent, User 
 from .utils import TaqnyatSMSService 
 import random
@@ -40,7 +41,7 @@ class PhoneLoginSerializer(serializers.Serializer):
         sms_service.send_sms(
             recipients=[user.phone_number],
             message=f"رمز التحقق الخاص بك هو: {otp}",
-            sender_name="Hajeen"
+            sender_name=settings.TAQNYAT_SENDER_NAME
         )
 
 

@@ -191,6 +191,7 @@ AUTH_USER_MODEL = 'core.User'  # Custom user model
 # Taqnyat Configuration
 TAQNYAT_API_KEY = "1cb7468728a9d8666e3e0789cfe94cb6"
 TAQNYAT_BASE_URL = 'https://api.taqnyat.sa'
+TAQNYAT_SENDER_NAME = "RazanMulaik"
 
 # Firebase Configuration 
 cred = credentials.Certificate("hajeen-1-firebase-adminsdk-fbsvc-867086a1ce.json")
