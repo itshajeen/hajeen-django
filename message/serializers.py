@@ -167,6 +167,8 @@ class MessageMiniSerializer(serializers.ModelSerializer):
         fields = ['id', 'message_type', 'created_at', 'is_seen']
 
     def get_message_type(self, obj):
+        if obj.is_emergency:
+            return _("رسالة طوارئ")  
         if obj.message_type and obj.message_type.message_type:
             return obj.message_type.message_type.label_ar
-        return None
+        return _("غير معروف")  
