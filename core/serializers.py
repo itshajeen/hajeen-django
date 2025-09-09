@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 from message.serializers import MessageMiniSerializer
 from django.conf import settings
-from .models import  AppSettings, DisabilityType, Guardian, Dependent, User 
+from .models import  AppSettings, DisabilityType, Guardian, Dependent, GuardianMessageDefault, User 
 from .utils import TaqnyatSMSService 
 import random
 
@@ -360,3 +360,12 @@ class AppSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = AppSettings
         fields = '__all__'
+
+
+# Guardian Message Default Serializer 
+class GuardianMessageDefaultSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GuardianMessageDefault
+        fields = ["id", "guardian", "messages_per_month", "app_settings"]
+        read_only_fields = ["id", "guardian", "app_settings"]
+

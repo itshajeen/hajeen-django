@@ -20,9 +20,8 @@ from core.pagination import DefaultPagination
 from core.permissions import IsAdminOrReadOnly, IsGuardianOwnDependent
 from core.utils import TaqnyatSMSService
 from message.models import GuardianMessageType, Message, MessageType 
-from .models import AppSettings, Dependent, DisabilityType, Guardian, User 
+from .models import AppSettings, Dependent, DisabilityType, Guardian, GuardianMessageDefault, User 
 from .serializers import AppSettingsSerializer, DependentSerializer, DisabilityTypeSerializer, GuardianSerializer, PhoneLoginSerializer, PhonePasswordLoginSerializer, SetGuardianPinCodeSerializer, UserProfileSerializer, UserProfileUpdateSerializer
-
 
 
 # Phone Login API View
@@ -267,6 +266,39 @@ class GuardianViewSet(viewsets.ModelViewSet):
         user.is_active = not user.is_active
         user.save()
         return Response({'status': 'success', 'is_active': user.is_active}, status=status.HTTP_200_OK)
+
+    # Update Messages 
+    @action(detail=True, methods=['post'], url_path='update-messages')
+    def update_messages(self, request, pk=None):
+        guardian = self.get_object()
+        try:
+            guardian_default = guardian.message_defaults
+        except GuardianMessageDefault.DoesNotExist:
+            return Response(
+                {"detail": _("No default message record for this guardian")},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        new_count = request.data.get("messages_per_month")
+        if new_count is None:
+            return Response({"detail": _("messages_per_month is required")}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            new_count = int(new_count)
+        except ValueError:
+            return Response({"detail": _("messages_per_month must be integer")}, status=status.HTTP_400_BAD_REQUEST)
+
+        guardian_default.messages_per_month = new_count
+        guardian_default.save()
+
+        return Response(
+            {
+                "guardian": guardian.user.name,
+                "messages_per_month": guardian_default.messages_per_month
+            },
+            status=status.HTTP_200_OK
+        )
+
 
     def perform_destroy(self, instance):
         # Delete the Guardian and associated User 

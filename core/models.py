@@ -164,6 +164,7 @@ class Dependent(models.Model):
 
 # App Settings 
 class AppSettings(models.Model):
+    version = models.CharField(max_length=10, verbose_name=_("App Version"))
     whatsapp_number = models.CharField(validators=[phone_regex], max_length=17, unique=True)  # max_length 17 for country code and number
     max_sms_message = models.IntegerField(default=1, verbose_name=_("Max SMS Messages"))
 
@@ -188,3 +189,21 @@ class Notification(models.Model):
     
     def _str_(self):
         return f"{self.get_notification_type_display()} - {self.user}"
+
+
+# Guardian Message Default 
+class GuardianMessageDefault(models.Model):
+    guardian = models.OneToOneField(
+        "Guardian",
+        on_delete=models.CASCADE,
+        related_name="message_defaults"
+    )
+    messages_per_month = models.PositiveIntegerField(default=0)
+    app_settings = models.ForeignKey(
+        AppSettings,
+        on_delete=models.CASCADE,
+        related_name="guardian_defaults"
+    )
+
+    def __str__(self):
+        return f"{self.guardian} - {self.messages_per_month} msgs (v{self.app_settings.version})"
