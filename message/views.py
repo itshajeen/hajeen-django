@@ -71,26 +71,26 @@ class MessageViewSet(viewsets.ModelViewSet):
         is_emergency = request.data.get('is_emergency', False)
 
         if not registration_id:
-            return Response({"detail": _("registration_id is required.")}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": _("معرف التسجيل مطلوب.")}, status=status.HTTP_400_BAD_REQUEST)
 
         dependent = get_object_or_404(Dependent, registration_id=registration_id)
         guardian = dependent.guardian
 
         if is_sms and is_voice:
-            return Response({"detail": _("A message cannot be both SMS and Voice.")}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": _("لا يمكن أن تكون الرسالة SMS وصوتية في نفس الوقت.")}, status=status.HTTP_400_BAD_REQUEST)
 
         message_type = None
 
         if is_emergency:
             if message_type_id:
-                return Response({"detail": _("Emergency messages should not have a message_type_id.")}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"detail": _("يجب ألا تحتوي رسائل الطوارئ على معرف نوع الرسالة.")}, status=status.HTTP_400_BAD_REQUEST)
         else:
             if not message_type_id:
-                return Response({"detail": _("message_type_id is required for non-emergency messages.")}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"detail": _("معرف نوع الرسالة مطلوب للرسائل غير الطارئة.")}, status=status.HTTP_400_BAD_REQUEST)
             
             message_type = GuardianMessageType.objects.filter(id=message_type_id, guardian=guardian).first()
             if not message_type:
-                return Response({"detail": _("This message_type does not belong to the guardian.")}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"detail": _("هذا النوع من الرسائل لا ينتمي إلي هذا المشرف.")}, status=status.HTTP_400_BAD_REQUEST)
 
         message = Message(
             guardian=guardian,
@@ -133,7 +133,7 @@ class MessageViewSet(viewsets.ModelViewSet):
             )
 
         serializer = self.get_serializer(message)
-        return Response({"message": _("Message sent successfully"), "data": serializer.data}, status=status.HTTP_201_CREATED)
+        return Response({"message": _("تم إرسال الرسالة بنجاح"), "data": serializer.data}, status=status.HTTP_201_CREATED)
 
 
 # GuardianMessagesAPIView
@@ -143,7 +143,7 @@ class GuardianMessagesAPIView(APIView):
     def get(self, request):
         user = request.user
         if user.role != 'guardian' or not hasattr(user, 'guardian'):
-            return Response({"detail": _("Not authorized.")}, status=403)
+            return Response({"detail": _("غير مصرح لك.")}, status=403)
 
         guardian = user.guardian
         dependent_id = request.query_params.get('dependent_id')
@@ -202,5 +202,5 @@ class MarkMessagesReadAPIView(APIView):
         # Update the messages to mark them as read 
         updated_count = queryset.update(is_seen=True)
         return Response({
-            'message': f'{updated_count} messages marked as read.'
+            'message': f'{updated_count} من الرسائل تم وضع علامة عليهم كمقرؤة.'
         }, status=status.HTTP_200_OK)

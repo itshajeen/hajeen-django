@@ -32,7 +32,7 @@ class PhoneLoginAPIView(APIView):
             user = serializer.validated_data['user']
             # Return OTP in response (for development/testing purposes)
             return Response({
-                'detail': _('OTP sent successfully.'),
+                'detail': _('تم إرسال OTP بنجاح.'),
                 'role': user.role,
             }, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -51,7 +51,7 @@ class PhonePasswordLoginAPIView(APIView):
             refresh_token = str(refresh)
 
             return Response({
-                'detail': _('Login successful.'),
+                'detail': _('تم تسجيل الدخول بنجاح.'),
                 'access_token': access_token,
                 'refresh_token': refresh_token
             }, status=status.HTTP_200_OK)
@@ -68,7 +68,7 @@ class VerifyOTPAPIView(APIView):
         device_type = request.headers.get("Device-Type", "ios")  # Optional 
 
         if not phone_number or not otp:
-            return Response({'detail': _('phone_number and otp are required.')}, status=400)
+            return Response({'detail': _('رقم الهاتف وكلمة المرور لمرة واحدة مطلوبان.')}, status=400)
 
         try:
             user = User.objects.get(phone_number=phone_number)
@@ -92,17 +92,17 @@ class VerifyOTPAPIView(APIView):
                     )
 
                 return Response({
-                    'detail': _('Login successful.'),
+                    'detail': _('تم تسجيل الدخول بنجاح.'),
                     'role': user.role,
                     'access_token': access_token,
                     'refresh_token': refresh_token
                 })
 
             else:
-                return Response({'detail': _('Invalid OTP.')}, status=400)
+                return Response({'detail': _('كلمة مرور لمرة واحدة غير صالحة.')}, status=400)
 
         except User.DoesNotExist:
-            return Response({'detail': _('User not found.')}, status=404)
+            return Response({'detail': _('المستخدم غير موجود.')}, status=404)
 
 
 # User Profile API View 
@@ -117,7 +117,7 @@ class UserProfileAPIView(APIView):
         serializer = UserProfileUpdateSerializer(user, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response({"message" : _("profile updated successfully"), "data" : serializer.data}, status=status.HTTP_200_OK)
+            return Response({"message" : _("تم تحديث الحساب بنجاح"), "data" : serializer.data}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -128,7 +128,7 @@ class DeleteAccountAPIView(APIView):
     def delete(self, request):
         user = request.user
         user.delete()
-        return Response({"message": _("Account deleted successfully.")}, status=status.HTTP_204_NO_CONTENT)
+        return Response({"message": _("تم حذف الحساب بنجاح.")}, status=status.HTTP_204_NO_CONTENT)
 
 
 # Guardian Set Pin Code API View 
@@ -139,7 +139,7 @@ class SetGuardianPinCodeView(APIView):
         serializer = SetGuardianPinCodeSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
-            return Response({'message': _('PIN code set successfully.')}, status=201)
+            return Response({'message': _('تم تعيين رمز PIN بنجاح.')}, status=201)
         return Response(serializer.errors, status=400)
 
 
@@ -150,12 +150,12 @@ class RequestGuardianPinResetView(APIView):
     def post(self, request):
         user = request.user
         if user.role != 'guardian':
-            return Response({'detail': _('Only guardians can request pin reset.')}, status=403)
+            return Response({'detail': _('يمكن للمشرفين فقط طلب إعادة تعيين الرقم السري.')}, status=403)
 
         try:
             guardian = Guardian.objects.get(user=user)
         except Guardian.DoesNotExist:
-            return Response({'detail': 'Guardian not found.'}, status=404)
+            return Response({'detail': _('المشرف غير موجود.')}, status=404)
 
         otp = str(random.randint(1000, 9999))
         guardian.pin_reset_otp = otp
@@ -169,7 +169,7 @@ class RequestGuardianPinResetView(APIView):
             message = f"عزيزنا العميل،\nرمز التحقق لتغيير الكود السري الخاص بمنصة شركة رزان عدنان المليك للتجارة هو {otp}", 
             sender_name=settings.TAQNYAT_SENDER_NAME 
         )
-        return Response({'detail': _('Verification code has been sent to your phone number successfully.'), 'otp': guardian.pin_reset_otp }, status=200)
+        return Response({'detail': _('لقد تم إرسال رمز التحقق إلى رقم هاتفك بنجاح.'), 'otp': guardian.pin_reset_otp }, status=200)
 
 
 # Reset Guardian PIN Code API View
@@ -179,30 +179,30 @@ class ResetGuardianPinCodeView(APIView):
     def post(self, request):
         user = request.user
         if user.role != 'guardian':
-            return Response({'detail': _('Only guardians can reset pin code.')}, status=403)
+            return Response({'detail': _('يمكن للمشرفين فقط إعادة تعيين الرمز البريدي.')}, status=403)
 
         try:
             guardian = Guardian.objects.get(user=user)
         except Guardian.DoesNotExist:
-            return Response({'detail': 'Guardian not found.'}, status=404)
+            return Response({'detail': _('المشرف غير مسجل')}, status=404)
 
         otp = request.data.get('otp')
         new_pin_code = request.data.get('new_pin_code')
 
         # Check OTP
         if guardian.pin_reset_otp != otp:
-            return Response({'detail': _('Invalid OTP or PIN code.')}, status=400)
+            return Response({'detail': _('الرمز البريدي او رمز التحقق غير صحيح')}, status=400)
 
         # Validate new_pin_code (example: must be 4 digits)
         if not new_pin_code or not new_pin_code.isdigit() or len(new_pin_code) != 4:
-            return Response({'detail': _('Invalid OTP or PIN code.')}, status=400)
+            return Response({'detail': _('الرمز البريدي او رمز التحقق غير صحيح')}, status=400)
 
         guardian.set_code(new_pin_code)
         guardian.pin_reset_otp = None
         guardian.otp_created_at = None
         guardian.save()
 
-        return Response({'detail': _('PIN code reset successfully.')}, status=200)
+        return Response({'detail': _('تم إعادة تعيين الرمز البريدي بنجاح.')}, status=200)
     
 
 # Verify Guardian PIN Code API View
@@ -212,16 +212,16 @@ class VerifyGuardianPinCodeView(APIView):
     def post(self, request):
         user = request.user
         if user.role != 'guardian':
-            return Response({'detail': _('Only guardians can verify pin code.')}, status=403)
+            return Response({'detail': _('يمكن للمشرفين فقط التحقق من الرمز البريدي.')}, status=403)
         
         try:
             guardian = Guardian.objects.get(user=user)
         except Guardian.DoesNotExist:
-            return Response({'detail': _('Guardian not found.')}, status=404)
+            return Response({'detail': _('المشرف غير موجود.')}, status=404)
         
         pin_code = request.data.get('pin_code')
         if not pin_code or not guardian.check_code(pin_code):
-            return Response({'detail': _('Invalid PIN code.'), 'is_verified': False}, status=400)
+            return Response({'detail': _('الرمز البريدي غير صالح.'), 'is_verified': False}, status=400)
 
         # get registration id from headers  
         registration_id = request.headers.get("X-Client-Fcm-Token")
@@ -236,7 +236,7 @@ class VerifyGuardianPinCodeView(APIView):
 
         # If pin_code is valid, return success response
         return Response({
-            'detail': _('PIN code verified successfully.'),
+            'detail': _('تم التحقق من الرمز البريدي بنجاح.'),
             'is_verified': True
         }, status=200)
     
@@ -275,18 +275,18 @@ class GuardianViewSet(viewsets.ModelViewSet):
             guardian_default = guardian.message_defaults
         except GuardianMessageDefault.DoesNotExist:
             return Response(
-                {"detail": _("No default message record for this guardian")},
+                {"detail": _("لا يوجد سجل رسالة افتراضي لهذا المشرف")},
                 status=status.HTTP_404_NOT_FOUND
             )
 
         new_count = request.data.get("messages_per_month")
         if new_count is None:
-            return Response({"detail": _("messages_per_month is required")}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": _("عدد الرسائل في الشهر مطلوبة")}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             new_count = int(new_count)
         except ValueError:
-            return Response({"detail": _("messages_per_month must be integer")}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": _("عدد الرسائل يجب ان يكون عدد صحيح")}, status=status.HTTP_400_BAD_REQUEST)
 
         guardian_default.messages_per_month = new_count
         guardian_default.save()
@@ -350,14 +350,14 @@ class DependentViewSet(viewsets.ModelViewSet):
 
         if not registration_id:
             return Response(
-                {"detail": _("registration_id is required")},
+                {"detail": _("معرف التسجيل مطلوب")},
                 status=status.HTTP_400_BAD_REQUEST
             )
         # Check that registration id exists 
         exists = Dependent.objects.filter(registration_id=registration_id).exclude(pk=dependent.pk).exists()
         if exists:
             return Response(
-                {"detail": _("This registration_id is already used by another dependent.")},
+                {"detail": _("تم استخدام معرف التسجيل هذا بالفعل بواسطة تابع آخر.")},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -365,7 +365,7 @@ class DependentViewSet(viewsets.ModelViewSet):
         dependent.save()
 
         return Response(
-            {"message": _("Device registered successfully")},
+            {"message": _("تم تسجيل الجهاز بنجاح")},
             status=status.HTTP_200_OK
         )
 
