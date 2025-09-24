@@ -79,6 +79,36 @@ class MessageViewSet(viewsets.ModelViewSet):
         if is_sms and is_voice:
             return Response({"detail": _("لا يمكن أن تكون الرسالة SMS وصوتية في نفس الوقت.")}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Check your monthly message limit...
+        if is_sms:
+            guardian_defaults = getattr(guardian, 'message_defaults', None)
+            if not guardian_defaults or guardian_defaults.messages_per_month <= 0:
+                return Response(
+                    {"detail": _("لا يوجد حد شهري للرسائل. يرجى تجديد الحد أو التواصل مع خدمة العملاء.")},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Current Month Start 
+            now = timezone.now()
+            first_day_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+            # Number of messages sent this month
+            messages_sent_this_month = Message.objects.filter(
+                guardian=guardian,
+                is_sms=True,
+                created_at__gte=first_day_of_month
+            ).count()
+
+            if messages_sent_this_month >= guardian_defaults.messages_per_month:
+                return Response(
+                    {"detail": _("لقد وصلت للحد الشهري للرسائل. يرجى تجديد الحد أو التواصل مع خدمة العملاء.")},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Deduct one message from the limit
+            guardian_defaults.messages_per_month -= 1
+            guardian_defaults.save()
+
         message_type = None
 
         if is_emergency:
@@ -92,6 +122,7 @@ class MessageViewSet(viewsets.ModelViewSet):
             if not message_type:
                 return Response({"detail": _("هذا النوع من الرسائل لا ينتمي إلي هذا المشرف.")}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Create Msg 
         message = Message(
             guardian=guardian,
             dependent=dependent,
@@ -109,7 +140,6 @@ class MessageViewSet(viewsets.ModelViewSet):
         if message.is_emergency:
             title = f"رسالة طارئة من {dependent.name}"
             notification_body = f"رسالة طارئة من {dependent.name}"
-
         elif message_type and message_type.message_type:
             title = f"{message_type.message_type.label_ar} من {dependent.name}"
             notification_body = f"{message_type.message_type.label_ar} \n من {dependent.name} \n تطبيق هجين"
@@ -124,6 +154,7 @@ class MessageViewSet(viewsets.ModelViewSet):
             data={"type": "new_message", "message_id": str(message.id), "dependent_id": str(dependent.id)}
         )
 
+        # Send SMS
         if is_sms and guardian.user.phone_number:
             sms_service = TaqnyatSMSService()
             sms_service.send_sms(
@@ -131,10 +162,9 @@ class MessageViewSet(viewsets.ModelViewSet):
                 message=f"{message_type.message_type.label_ar if message_type else 'لديك رسالة جديدة'} \n من {dependent.name} \n \n شركة رزان عدنان المليك للتجارة ",
                 sender_name=settings.TAQNYAT_SENDER_NAME 
             )
-
+            
         serializer = self.get_serializer(message)
         return Response({"message": _("تم إرسال الرسالة بنجاح"), "data": serializer.data}, status=status.HTTP_201_CREATED)
-
 
 # GuardianMessagesAPIView
 class GuardianMessagesAPIView(APIView):
@@ -182,6 +212,7 @@ class GuardianMessagesAPIView(APIView):
             "previous": [serialize_message(m) for m in previous_messages],
         })
     
+
 
 # MarkMessagesReadAPIView to mark messages as read 
 class MarkMessagesReadAPIView(APIView):

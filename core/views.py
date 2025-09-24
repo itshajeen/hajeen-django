@@ -353,19 +353,16 @@ class DependentViewSet(viewsets.ModelViewSet):
                 {"detail": _("معرف التسجيل مطلوب")},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        # Check that registration id exists 
-        exists = Dependent.objects.filter(registration_id=registration_id).exclude(pk=dependent.pk).exists()
-        if exists:
-            return Response(
-                {"detail": _("تم استخدام معرف التسجيل هذا بالفعل بواسطة تابع آخر.")},
-                status=status.HTTP_400_BAD_REQUEST
-            )
 
+        # Unbind any other dependent that has the same registration_id
+        Dependent.objects.filter(registration_id=registration_id).exclude(pk=dependent.pk).update(registration_id=None)
+
+        # Bind the current dependent to the device
         dependent.registration_id = registration_id
         dependent.save()
 
         return Response(
-            {"message": _("تم تسجيل الجهاز بنجاح")},
+            {"message": _("تم تسجيل الجهاز بنجاح وربطه بالتابع الحالي")},
             status=status.HTTP_200_OK
         )
 
