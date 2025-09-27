@@ -384,12 +384,34 @@ class AppSettingsView(APIView):
 
     def post(self, request):
         settings_instance = self.get_object()
+        
+        update_now = request.data.get('update_guardians_now', False)
+        update_next_month = request.data.get('update_guardians_next_month', False)
+
+        old_max = settings_instance.max_sms_message
+
         serializer = AppSettingsSerializer(settings_instance, data=request.data, partial=True)
         if serializer.is_valid():
-            serializer.save()
+            instance = serializer.save()
+            new_max = instance.max_sms_message
+            diff = new_max - old_max
+
+            if diff > 0:
+                if update_now:
+                    # Immediately adjust the balance
+                    for guardian_default in GuardianMessageDefault.objects.filter(app_settings=instance):
+                        guardian_default.messages_per_month += diff
+                        if guardian_default.messages_per_month > new_max:
+                            guardian_default.messages_per_month = new_max
+                        guardian_default.save()
+
+                if update_next_month:
+                    # Save the difference to apply it at the beginning of the new month
+                    instance.pending_guardian_increment = diff
+                    instance.save(update_fields=['pending_guardian_increment'])
+
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 
 # Dashboard Stats View 

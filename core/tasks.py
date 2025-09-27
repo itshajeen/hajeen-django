@@ -2,7 +2,7 @@ from django.utils import timezone
 from django.db.models import F
 from core.utils import send_notification_to_user  
 from .utils import send_notification_to_user
-from .models import GuardianMessageDefault
+from .models import AppSettings, GuardianMessageDefault
 
 
 # Notify guardians whose message package has expired 
@@ -50,3 +50,27 @@ def reset_monthly_messages():
             body=notification_body,
             data={"type": "package_renewed"}
         )
+
+
+# Reset Or Increment Guardians 
+def reset_or_increment_guardians():
+    today = timezone.now().date()
+    if today.day != 1:
+        return
+
+    settings = AppSettings.objects.first()
+    if not settings:
+        return
+
+    # If there is a pending_guardian_increment, apply it
+    if hasattr(settings, 'pending_guardian_increment') and settings.pending_guardian_increment:
+        diff = settings.pending_guardian_increment
+        new_max = settings.max_sms_message
+        for guardian_default in GuardianMessageDefault.objects.filter(app_settings=settings):
+            guardian_default.messages_per_month += diff
+            if guardian_default.messages_per_month > new_max:
+                guardian_default.messages_per_month = new_max
+            guardian_default.save()
+
+        settings.pending_guardian_increment = 0
+        settings.save(update_fields=['pending_guardian_increment'])

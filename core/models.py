@@ -167,6 +167,10 @@ class AppSettings(models.Model):
     version = models.CharField(max_length=10, verbose_name=_("App Version"))
     whatsapp_number = models.CharField(validators=[phone_regex], max_length=17, unique=True)  # max_length 17 for country code and number
     max_sms_message = models.IntegerField(default=1, verbose_name=_("Max SMS Messages"))
+    pending_guardian_increment = models.IntegerField(
+        default=0,
+        verbose_name=_("Pending Guardian Increment"),
+        help_text=_("Number of additional messages to add to guardians with expired packages when they renew."))
 
 
 # Notification Model 

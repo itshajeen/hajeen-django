@@ -203,6 +203,8 @@ firebase_admin.initialize_app(cred)
 CRONJOBS = [
     # Notify expired guardians daily at midnight
     ('0 0 * * *', 'core.tasks.notify_expired_guardians'),
+    ('0 0 * * *', 'core.tasks.reset_or_increment_guardians'),  # Reset or increment guardians at midnight
     # Reset monthly messages at 1 AM every day
     ('0 1 * * *', 'app.tasks.reset_monthly_messages'),  
+
 ]
