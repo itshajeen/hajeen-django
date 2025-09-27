@@ -18,3 +18,4 @@ def create_guardian_message_default(sender, instance, created, **kwargs):
                 messages_per_month=app_settings.max_sms_message,
                 app_settings=app_settings
             )
+
