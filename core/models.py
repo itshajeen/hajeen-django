@@ -174,6 +174,8 @@ class Notification(models.Model):
     TYPES = (
         ('general', _('General')),
         ('new_message', _('New Message')),
+        ('package_expired', _('Package Expired')),
+        ('package_renewed', _('Package Renewed')),
     )
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications', null=True, blank=True)
@@ -204,6 +206,9 @@ class GuardianMessageDefault(models.Model):
         on_delete=models.CASCADE,
         related_name="guardian_defaults"
     )
+    notified_expired = models.BooleanField(default=False)  # To track if the guardian has been notified about expiration
+    def is_package_expired(self):
+        return self.messages_per_month >= self.app_settings.max_sms_message
 
     def __str__(self):
         return f"{self.guardian} - {self.messages_per_month} msgs (v{self.app_settings.version})"

@@ -326,7 +326,7 @@ class DisabilityTypeViewSet(viewsets.ModelViewSet):
 class DependentViewSet(viewsets.ModelViewSet):
     queryset = Dependent.objects.all()
     serializer_class = DependentSerializer
-    permission_classes = [IsGuardianOwnDependent]
+    permission_classes = [IsGuardianOwnDependent, IsAdminUser]
     pagination_class = DefaultPagination
 
     def get_queryset(self):

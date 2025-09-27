@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'fcm_django',
     'django_filters',
+    "django_crontab",
     'rest_framework_simplejwt.token_blacklist',
     'multiselectfield',
     'core', 
@@ -196,3 +197,12 @@ TAQNYAT_SENDER_NAME = "RazanMulaik"
 # Firebase Configuration 
 cred = credentials.Certificate("hajeen-1-firebase-adminsdk-fbsvc-867086a1ce.json")
 firebase_admin.initialize_app(cred)
+
+
+# Django Crontab Configuration 
+CRONJOBS = [
+    # Notify expired guardians daily at midnight
+    ('0 0 * * *', 'core.tasks.notify_expired_guardians'),
+    # Reset monthly messages at 1 AM every day
+    ('0 1 * * *', 'app.tasks.reset_monthly_messages'),  
+]

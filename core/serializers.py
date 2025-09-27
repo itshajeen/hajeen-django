@@ -177,6 +177,7 @@ class GuardianSerializer(serializers.ModelSerializer):
     is_block = serializers.BooleanField(source='user.is_block', required=False)
 
     dependents = serializers.SerializerMethodField()
+    message_limit = serializers.SerializerMethodField()
 
     class Meta:
         model = Guardian
@@ -195,6 +196,12 @@ class GuardianSerializer(serializers.ModelSerializer):
     def get_dependents(self, obj):
         dependents = obj.dependents.all()
         return DependentSerializer(dependents, many=True, context=self.context).data
+
+    # Get Message Limit 
+    def get_message_limit(self, obj):
+        if hasattr(obj, "message_defaults"):
+            return obj.message_defaults.messages_per_month
+        return 0
 
     # Create or Update Guardian 
     def create(self, validated_data):
