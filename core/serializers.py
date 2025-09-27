@@ -190,6 +190,7 @@ class GuardianSerializer(serializers.ModelSerializer):
             'is_block',
             'dependents',
             'created_at',
+            'message_limit'
         ]
 
     # Get Dependents 
