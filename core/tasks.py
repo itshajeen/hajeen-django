@@ -36,7 +36,7 @@ def reset_monthly_messages():
 
     records = GuardianMessageDefault.objects.all()
     for record in records:
-        record.messages_per_month = 0
+        record.messages_per_month = record.app_settings.max_sms_message
         record.notified_expired = False
         record.save()
 
