@@ -331,14 +331,13 @@ class DependentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        if user.is_superuser:  
+            return super().get_queryset().order_by('-date_birth')
         if user.role == 'guardian':
-            # If the user is a guardian, filter dependents by their guardian
             return super().get_queryset().filter(guardian__user=user).order_by('-date_birth')
         elif user.role == 'admin':
-            # If the user is an admin, return all dependents
             return super().get_queryset().order_by('-date_birth')
         else:
-            # For other roles, return an empty queryset
             return Dependent.objects.none()
         
     
