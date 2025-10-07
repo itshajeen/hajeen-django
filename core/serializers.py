@@ -26,8 +26,11 @@ class PhoneLoginSerializer(serializers.Serializer):
 
         # Check if user is blocked 
         if user.is_block :
-            raise serializers.ValidationError({"detail": _('User account is blocked.')}) 
-
+            raise serializers.ValidationError({"detail": _('تم حظر حساب المستخدم.')}) 
+        
+        if user.is_deleted:
+            raise serializers.ValidationError({"detail": _('تم حذف حساب المستخدم. يرجى الاتصال بالدعم الفني.')})
+        
         # OTP ثابت لرقم معين
         if phone_number == "507177774":  
             otp = "2252"

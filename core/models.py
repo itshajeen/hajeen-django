@@ -51,6 +51,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)  
     is_admin = models.BooleanField(default=False)
     is_block = models.BooleanField(default=False) # Field to block the user 
+    is_deleted = models.BooleanField(default=False) # Soft delete field 
     objects = userManager()
 
     USERNAME_FIELD = 'phone_number'

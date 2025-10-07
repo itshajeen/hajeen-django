@@ -131,6 +131,37 @@ class DeleteAccountAPIView(APIView):
         return Response({"message": _("تم حذف الحساب بنجاح.")}, status=status.HTTP_204_NO_CONTENT)
 
 
+# Soft Delete Account
+class SoftDeleteAccountAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request):
+        user = request.user
+        user.is_deleted = True
+        user.is_active = False  # Deactivate the account
+        user.save()
+        return Response({"message": _("تم حذف الحساب بنجاح.")}, status=status.HTTP_204_NO_CONTENT)
+    
+
+# Restore Guardian Account API View (Admin Only) 
+class RestoreGuardianAccountAPIView(APIView):
+    permission_classes = [IsAdminUser]  # Only admin can restore accounts
+
+    def post(self, request, guardian_id):
+        try:
+            guardian = Guardian.objects.get(id=guardian_id)
+            user = guardian.user
+            if user.is_deleted:
+                user.is_deleted = False
+                user.is_active = True  # Reactivate the account
+                user.save()
+                return Response({"message": _("تم استعادة حساب المشرف بنجاح.")}, status=status.HTTP_200_OK)
+            return Response({"message": _("حساب المشرف ليس محذوفًا.")}, status=status.HTTP_400_BAD_REQUEST)
+        except Guardian.DoesNotExist:
+            return Response({"message": _("المشرف غير موجود.")}, status=status.HTTP_404_NOT_FOUND)
+
+
+
 # Guardian Set Pin Code API View 
 class SetGuardianPinCodeView(APIView):
     permission_classes = [IsAuthenticated]
