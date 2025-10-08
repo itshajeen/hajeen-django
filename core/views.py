@@ -278,7 +278,8 @@ class GuardianViewSet(viewsets.ModelViewSet):
     serializer_class = GuardianSerializer 
     permission_classes = [IsAdminUser]
     pagination_class = DefaultPagination 
-
+    filterset_fields = ['user__name', 'user__phone_number', 'user__is_active', 'user__is_block', 'user__is_deleted']
+    
     def get_queryset(self):
         return super().get_queryset().order_by('-created_at')
 
