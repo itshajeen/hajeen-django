@@ -286,7 +286,23 @@ class GuardianViewSet(viewsets.ModelViewSet):
     }
     
     def get_queryset(self):
-        return super().get_queryset().order_by('-created_at')
+        queryset = Guardian.objects.select_related('user').order_by('-created_at')
+        params = self.request.query_params
+
+        # Apply filters manually
+        if 'user__is_deleted' in params:
+            value = params['user__is_deleted'].lower() in ['true', '1', 'yes']
+            queryset = queryset.filter(user__is_deleted=value)
+
+        if 'user__is_active' in params:
+            value = params['user__is_active'].lower() in ['true', '1', 'yes']
+            queryset = queryset.filter(user__is_active=value)
+
+        if 'user__is_block' in params:
+            value = params['user__is_block'].lower() in ['true', '1', 'yes']
+            queryset = queryset.filter(user__is_block=value)
+
+        return queryset
 
     @action(detail=True, methods=['post'], url_path='toggle-block')
     def toggle_block(self, request, pk=None):
