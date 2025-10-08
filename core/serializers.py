@@ -178,7 +178,7 @@ class GuardianSerializer(serializers.ModelSerializer):
     profile_picture = serializers.ImageField(source='user.profile_picture', required=False)
     is_active = serializers.BooleanField(source='user.is_active', required=False)
     is_block = serializers.BooleanField(source='user.is_block', required=False)
-
+    is_deleted = serializers.BooleanField(source='user.is_deleted', required=False) 
     dependents = serializers.SerializerMethodField()
     message_limit = serializers.SerializerMethodField()
 
