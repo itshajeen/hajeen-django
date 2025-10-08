@@ -191,6 +191,7 @@ class GuardianSerializer(serializers.ModelSerializer):
             'profile_picture',
             'is_active',
             'is_block',
+            'is_deleted',
             'dependents',
             'created_at',
             'message_limit'
