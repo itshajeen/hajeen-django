@@ -127,13 +127,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
     def get_remaining_sms(self, obj):
         if obj.role != 'guardian' or not hasattr(obj, 'guardian'):
             return None
-        from core.models import AppSettings  # import inside to avoid circular imports
-        from message.models import Message 
-        settings = AppSettings.objects.first()
-        if not settings:
+        from core.models import GuardianMessageDefault  # import inside to avoid circular imports
+        try:
+            guardian_defaults = obj.guardian.message_defaults
+            return max(guardian_defaults.messages_per_month, 0)
+        except GuardianMessageDefault.DoesNotExist:
             return 0
-        sent_count = Message.objects.filter(guardian=obj.guardian, is_sms=True).count()
-        return max(settings.max_sms_message - sent_count, 0)
 
 
 
