@@ -1,10 +1,10 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.conf import settings
-from .models import GuardianMessageDefault, AppSettings
+from .models import GuardianMessageDefault, AppSettings, Guardian
 
 
-@receiver(post_save, sender=settings.AUTH_USER_MODEL)
+@receiver(post_save, sender=Guardian)
 def create_guardian_message_default(sender, instance, created, **kwargs):
     if created:
         try:
@@ -13,9 +13,12 @@ def create_guardian_message_default(sender, instance, created, **kwargs):
             app_settings = None
 
         if app_settings:
-            GuardianMessageDefault.objects.create(
+            # Only create if it doesn't already exist
+            GuardianMessageDefault.objects.get_or_create(
                 guardian=instance,
-                messages_per_month=app_settings.max_sms_message,
-                app_settings=app_settings
+                defaults={
+                    'messages_per_month': app_settings.max_sms_message,
+                    'app_settings': app_settings
+                }
             )
 
