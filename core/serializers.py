@@ -310,7 +310,7 @@ class DependentSerializer(serializers.ModelSerializer):
         model = Dependent
         fields = [
             'id', 'name', 'disability_type', 'control_method', 'gender', 'date_birth',
-            'guardian', 'created_at', 'degree_type', 'marital_status', 'interest_field', 'last_messages', 'last_activity', 'total_messages', 'sms_messages'
+            'guardian', 'created_at', 'degree_type', 'degree_type_other', 'marital_status', 'interest_field', 'last_messages', 'last_activity', 'total_messages', 'sms_messages'
         ]
 
     def create(self, validated_data):
@@ -323,6 +323,19 @@ class DependentSerializer(serializers.ModelSerializer):
         # Validate control method
         if attrs['control_method'] not in dict(Dependent.CONTROL_METHOD_CHOICES).keys():
             raise serializers.ValidationError({'control_method': _('Invalid control method.')})
+        
+        # Validate degree_type_other when degree_type is "other"
+        degree_type = attrs.get('degree_type')
+        degree_type_other = attrs.get('degree_type_other')
+        
+        if degree_type == 'other':
+            if not degree_type_other or not degree_type_other.strip():
+                raise serializers.ValidationError({
+                    'degree_type_other': _('Custom degree type is required when "other" is selected.')
+                })
+        elif degree_type_other:
+            # Clear degree_type_other if degree_type is not "other"
+            attrs['degree_type_other'] = None
         
         # Validate date of birth
         if 'date_birth' in attrs and attrs['date_birth'] is not None:

@@ -143,6 +143,14 @@ class Dependent(models.Model):
         blank=True,
         verbose_name=_('Degree Type')
     )
+    degree_type_other = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        verbose_name=_('Custom Degree Type'),
+        help_text=_('Custom degree type when "other" is selected')
+    )
+    
     interest_field = MultiSelectField(
         choices=INTEREST_FIELD_CHOICES,
         null=True,
