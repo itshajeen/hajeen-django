@@ -54,6 +54,7 @@ class MessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer
     http_method_names = ['get', 'post']
     permission_classes = [IsAuthenticated]
+    pagination_class = DefaultPagination
 
     def get_queryset(self):
         guardian = getattr(self.request.user, 'guardian', None)
