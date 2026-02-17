@@ -25,21 +25,16 @@ jobs:
                   RELEASE=$(date +%Y-%m-%d-%H%M%S)
                   echo "RELEASE=$RELEASE" >> $GITHUB_ENV
 
-            - name: Upload code to server
-              uses: appleboy/scp-action@v0.1.7
-              with:
-                  host: ${{ secrets.DEPLOY_HOST }}
-                  username: ${{ secrets.DEPLOY_USER }}
-                  key: ${{ secrets.DEPLOY_KEY }}
-                  source: "."
-                  target: "/var/www/hajeen/releases/${{ env.RELEASE }}"
-
-            - name: Activate new release
+            - name: Deploy to server
               uses: appleboy/ssh-action@v1.0.3
               with:
-                  host: ${{ secrets.DEPLOY_HOST }}
-                  username: ${{ secrets.DEPLOY_USER }}
-                  key: ${{ secrets.DEPLOY_KEY }}
+                  host: ${{ secrets.HOST }}
+                  username: deploy
+                  password: ${{ secrets.DEPLOY_PASSWORD }}
                   script: |
-                      ln -sfn /var/www/hajeen/releases/${{ env.RELEASE }} /var/www/hajeen/current
+                      cd /home/django/hajeen-django/
+                      git pull
+                      pip install -r requirements.txt
+                      python manage.py migrate
+                      python manage.py collectstatic --noinput
                       sudo systemctl restart gunicorn
