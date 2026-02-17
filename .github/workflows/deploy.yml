@@ -1,0 +1,45 @@
+name: Deploy to Production
+
+on:
+    push:
+        branches: [main]
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.11"
+
+            - name: Install dependencies
+              run: pip install -r requirements.txt
+
+            - name: Create release folder
+              run: |
+                  RELEASE=$(date +%Y-%m-%d-%H%M%S)
+                  echo "RELEASE=$RELEASE" >> $GITHUB_ENV
+
+            - name: Upload code to server
+              uses: appleboy/scp-action@v0.1.7
+              with:
+                  host: ${{ secrets.DEPLOY_HOST }}
+                  username: ${{ secrets.DEPLOY_USER }}
+                  key: ${{ secrets.DEPLOY_KEY }}
+                  source: "."
+                  target: "/var/www/hajeen/releases/${{ env.RELEASE }}"
+
+            - name: Activate new release
+              uses: appleboy/ssh-action@v1.0.3
+              with:
+                  host: ${{ secrets.DEPLOY_HOST }}
+                  username: ${{ secrets.DEPLOY_USER }}
+                  key: ${{ secrets.DEPLOY_KEY }}
+                  script: |
+                      ln -sfn /var/www/hajeen/releases/${{ env.RELEASE }} /var/www/hajeen/current
+                      sudo systemctl restart gunicorn
