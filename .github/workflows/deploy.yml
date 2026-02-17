@@ -20,11 +20,6 @@ jobs:
             - name: Install dependencies
               run: pip install -r requirements.txt
 
-            - name: Create release folder
-              run: |
-                  RELEASE=$(date +%Y-%m-%d-%H%M%S)
-                  echo "RELEASE=$RELEASE" >> $GITHUB_ENV
-
             - name: Deploy to server
               uses: appleboy/ssh-action@v1.0.3
               with:
@@ -34,6 +29,7 @@ jobs:
                   script: |
                       cd /home/django/hajeen-django/
                       git pull
+                      source venv/bin/activate
                       pip install -r requirements.txt
                       python manage.py migrate
                       python manage.py collectstatic --noinput
