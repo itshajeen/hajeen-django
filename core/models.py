@@ -23,6 +23,9 @@ class userManager(BaseUserManager):
         """Create and return a superuser with admin rights."""
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_staff', True)  
+        # Ensure required fields are populated for admin users created via CLI.
+        # Without this, createsuperuser can create a User missing a role.
+        extra_fields.setdefault('role', 'admin')
         return self.create_user(phone_number, password, **extra_fields)
 
 
