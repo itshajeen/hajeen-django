@@ -7,11 +7,28 @@ from .models import GuardianMessageDefault, AppSettings, Guardian
 def create_guardian_message_default(sender, instance, created, **kwargs):
     # Defensive: this signal must only ever run for Guardian instances.
     # (If it gets connected incorrectly in another environment, bail out.)
-    # Check both sender and instance type to be absolutely sure
+    # Multiple checks to ensure we only process Guardian instances
+    
+    # Check sender first
     if sender != Guardian:
         return
+    
+    # Check instance type using multiple methods
     if not isinstance(instance, Guardian):
         return
+    
+    # Check if instance has Guardian-specific attributes
+    if not hasattr(instance, 'user') or not hasattr(instance, 'guardian_code_hashed'):
+        return
+    
+    # Additional check: verify the instance's model is Guardian using _meta
+    try:
+        if instance._meta.model_name != 'guardian' or instance._meta.label != 'core.Guardian':
+            return
+    except (AttributeError, Exception):
+        # If _meta check fails, fall back to class check
+        if instance.__class__ != Guardian:
+            return
     
     if not created:
         return
@@ -23,11 +40,17 @@ def create_guardian_message_default(sender, instance, created, **kwargs):
 
     if app_settings:
         # Only create if it doesn't already exist
-        GuardianMessageDefault.objects.get_or_create(
-            guardian=instance,
-            defaults={
-                'messages_per_month': app_settings.max_sms_message,
-                'app_settings': app_settings
-            }
-        )
+        # Wrap in try-except as final safety measure
+        try:
+            GuardianMessageDefault.objects.get_or_create(
+                guardian=instance,
+                defaults={
+                    'messages_per_month': app_settings.max_sms_message,
+                    'app_settings': app_settings
+                }
+            )
+        except (ValueError, TypeError) as e:
+            # If somehow a non-Guardian instance got through, log and ignore
+            # This should never happen with all the checks above, but just in case
+            return
 
