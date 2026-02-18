@@ -10,14 +10,16 @@ def create_guardian_message_default(sender, instance, created, **kwargs):
     # Multiple checks to ensure we only process Guardian instances
     
     # FIRST CHECK: If instance is a User (not Guardian), return immediately
-    if isinstance(instance, User) and not isinstance(instance, Guardian):
+    # This handles the case where the signal might be incorrectly triggered for User instances
+    if isinstance(instance, User):
+        # User and Guardian are different models, so if instance is User, it's definitely not Guardian
         return
     
-    # Check sender first
+    # Check sender first - must be Guardian model
     if sender != Guardian:
         return
     
-    # Check instance type using multiple methods
+    # Check instance type using multiple methods - must be Guardian instance
     if not isinstance(instance, Guardian):
         return
     
