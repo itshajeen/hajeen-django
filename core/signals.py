@@ -1,6 +1,6 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import GuardianMessageDefault, AppSettings, Guardian
+from .models import GuardianMessageDefault, AppSettings, Guardian, User
 
 
 @receiver(post_save, sender=Guardian)
@@ -8,6 +8,10 @@ def create_guardian_message_default(sender, instance, created, **kwargs):
     # Defensive: this signal must only ever run for Guardian instances.
     # (If it gets connected incorrectly in another environment, bail out.)
     # Multiple checks to ensure we only process Guardian instances
+    
+    # FIRST CHECK: If instance is a User (not Guardian), return immediately
+    if isinstance(instance, User) and not isinstance(instance, Guardian):
+        return
     
     # Check sender first
     if sender != Guardian:
