@@ -9,23 +9,33 @@ from multiselectfield import MultiSelectField
 
 
 # manager for the User model
-class userManager(BaseUserManager):
+class UserManager(BaseUserManager):
+
     def create_user(self, phone_number, password=None, **extra_fields):
-        """Create and return a regular user."""
         if not phone_number:
-            raise ValueError(_('The phone number field must be set'))
+            raise ValueError(_("The phone number must be set"))
+
+        phone_number = self.normalize_email(phone_number)  # احذفها لو مش محتاج normalization
+
+        extra_fields.setdefault("is_active", True)
+
         user = self.model(phone_number=phone_number, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
-        return user 
+        return user
+
 
     def create_superuser(self, phone_number, password=None, **extra_fields):
-        """Create and return a superuser with admin rights."""
-        extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('is_staff', True)  
-        # Ensure required fields are populated for admin users created via CLI.
-        # Without this, createsuperuser can create a User missing a role.
-        extra_fields.setdefault('role', 'admin')
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("role", "admin")
+
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError("Superuser must have is_staff=True.")
+
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError("Superuser must have is_superuser=True.")
+
         return self.create_user(phone_number, password, **extra_fields)
 
 
@@ -205,7 +215,7 @@ class Notification(models.Model):
     class Meta:
         ordering = ['-created_at']
     
-    def _str_(self):
+    def __str__(self):
         return f"{self.get_notification_type_display()} - {self.user}"
 
 
